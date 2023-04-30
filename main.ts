@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, TFile, MarkdownView, PluginSettingTab, Setting } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -10,6 +10,10 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
+const OPENAI_API_KEY = 'OPENAI_API_KEY';
+const OPENAI_API_BASE = 'https://api.openai.com/v1/chat/completions';
+const ENGINE_ID = 'gpt-3.5-turbo';
+
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
@@ -17,9 +21,11 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+			const lastSentence = await this.readLastSentence();
+			const openAiResponse = await this.sendTextToOpenAI(lastSentence)
+			new Notice(openAiResponse)
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -76,11 +82,72 @@ export default class MyPlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+		this.addCommand({
+			id: 'start-periodic-popup',
+		  	name: 'Start periodic popup notifications',
+		  	callback: () => {
+				this.startPeriodicPopup(500); // Show a popup every 5000 milliseconds (5 seconds)
+			},
+		});
+
+		// Add a new command to stop periodic popups
+		this.addCommand({
+		  	id: 'stop-periodic-popup',
+		  	name: 'Stop periodic popup notifications',
+		  	callback: () => {
+				this.stopPeriodicPopup();
+		  	},
+		});
+
+		this.addCommand({
+			  id: 'read-last-sentence',
+			  name: 'Read last sentence',
+			  callback: () => {
+				this.readLastSentence();
+			  },
+			});
+
+		this.addCommand({
+			id: 'send-text-to-openai',
+		  	name: 'Send text to OpenAI',
+		  	callback: async () => {
+		  		new Notice('Test OpenAI call')
+				const prompt = 'Write a Python function that takes a string as input and returns the reversed string:';
+				const output = await this.sendTextToOpenAI(prompt);
+				new Notice(`OpenAI output: ${output}`);
+		  },
+		});
 	}
+
+	startPeriodicPopup(interval: number) {
+		if (this.intervalId !== null) {
+		  // If an interval is already running, stop it first
+		  this.stopPeriodicPopup();
+		}
+
+		// Schedule the popup to appear at regular intervals
+		this.intervalId = window.setInterval(() => {
+			this.Notice('This is a periodic popup notification!');
+		}, interval);
+	  }
+
+	stopPeriodicPopup() {
+    	if (this.intervalId !== null) {
+      		// Clear the interval if it's running
+      		window.clearInterval(this.intervalId);
+      		this.intervalId = null;
+		}
+  	}
 
 	onunload() {
 
 	}
+
+// 	showPopup(message: string) {
+// 		// Create and display the popup notification
+// 		new Notice(message);
+// 	  }
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -89,6 +156,61 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+	async readLastSentence(): Promise<string> {
+		// Get the active markdown view
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+
+		if (activeView) {
+		  // Get the content of the active note
+		  const noteContent = await this.app.vault.read(activeView.file);
+
+		  // Extract the last sentence
+		  const lastSentence = this.getLastSentence(noteContent);
+
+		  // Display the last sentence
+		  if (lastSentence) {
+			return lastSentence
+		  } else {
+			new Notice('No sentence found in the active note.');
+		  }
+		} else {
+		  new Notice('No active note found.');
+		}
+	}
+
+	getLastSentence(text: string): string | null {
+		const sentences = text.match(/[^.!?]+[.!?]+/g);
+		return sentences ? sentences[sentences.length - 1].trim() : null;
+    }
+
+    async sendTextToOpenAI(prompt: string): Promise<string> {
+		try {
+		  const response = await fetch(`${OPENAI_API_BASE}`, {
+			method: 'POST',
+			headers: {
+			  'Content-Type': 'application/json',
+			  'Authorization': `Bearer ${OPENAI_API_KEY}`,
+			},
+			body: JSON.stringify({
+			  model: ENGINE_ID,
+			  messages: [{"role": "user", "content": `Ask a question to someone who wrote: ${prompt}`}],
+			}),
+		  });
+		  if (!response.ok) {
+			new Notice(`BAD RESPONSE`)
+			throw new Error('Network response was not ok');
+		  }
+
+		  const data = await response.json();
+
+		  return `${data.choices[0].message.content.trim()}`;
+		} catch (error) {
+		  console.error('Error sending text to OpenAI:', error);
+		  return 'Error';
+		}
+	  }
+
 }
 
 class SampleModal extends Modal {
