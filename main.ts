@@ -10,7 +10,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
-const OPENAI_API_KEY = 'OPENAI_API_KEY';
+const OPENAI_API_KEY = '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';
 const OPENAI_API_BASE = 'https://api.openai.com/v1/chat/completions';
 const ENGINE_ID = 'gpt-3.5-turbo';
 
@@ -21,12 +21,23 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', async (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('dice', 'Ask GPT', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			const lastSentence = await this.readLastSentence();
 			const openAiResponse = await this.sendTextToOpenAI(lastSentence)
 			new Notice(openAiResponse)
 		});
+
+		this.addRibbonIcon('activity', 'PromptSelect', async () => {
+			const leaf = this.app.workspace.getRightLeaf(false);
+			if (leaf) {
+			  await this.displayButtons(leaf);
+			}
+		  });
+
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  		this.addSettingTab(new SampleSettingTab(this.app, this));
+
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
@@ -120,6 +131,42 @@ export default class MyPlugin extends Plugin {
 		});
 	}
 
+	async displayButtons(leaf: WorkspaceLeaf) {
+		const view = this.app.workspace.activeLeaf.view;
+		if (!view || view.getViewType() !== 'markdown') {
+		  return;
+		}
+	  
+		const buttonsDiv = document.createElement('div');
+		buttonsDiv.addClass('my-plugin-buttons');
+	  
+		const button1 = document.createElement('button');
+		button1.innerText = 'Socrates';
+		button1.addClass('my-plugin-button');
+		button1.addEventListener('click', async () => {
+			this.settings.prompt = 'Protagoras: {prompt} Socrates:';
+			await this.saveSettings();
+		});
+	  
+		buttonsDiv.appendChild(button1);
+
+		const button2 = document.createElement('button');
+		button2.innerText = 'Writer';
+		button2.addClass('my-plugin-button');
+		button2.addEventListener('click', async () => {
+			this.settings.prompt = 'For example, when I was first starting out I would often write the following: blockquote{prompt}/blockquote While I think Im still pretty proud of having raised these points at the time, there are some pretty glaringly obvious gaps in my reasoning. In particular, the biggest mistake I made (and would often make) was when I claimed'
+			await this.saveSettings();
+		});
+	  
+		buttonsDiv.appendChild(button2);
+	  
+		// Add more buttons here
+	  
+		view.containerEl.parentElement.appendChild(buttonsDiv);
+	  }
+
+
+
 	startPeriodicPopup(interval: number) {
 		if (this.intervalId !== null) {
 		  // If an interval is already running, stop it first
@@ -141,7 +188,12 @@ export default class MyPlugin extends Plugin {
   	}
 
 	onunload() {
-
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const buttonsDiv = leaf.containerEl.querySelector('.my-plugin-buttons');
+			if (buttonsDiv) {
+			  buttonsDiv.remove();
+			}
+		  });
 	}
 
 // 	showPopup(message: string) {
@@ -185,6 +237,9 @@ export default class MyPlugin extends Plugin {
     }
 
     async sendTextToOpenAI(prompt: string): Promise<string> {
+		//take the settings prompt and replace {{prompt}} with the prompt
+		const comboprompt = this.settings.prompt.replace('{prompt}', prompt);
+
 		try {
 		  const response = await fetch(`${OPENAI_API_BASE}`, {
 			method: 'POST',
@@ -194,7 +249,8 @@ export default class MyPlugin extends Plugin {
 			},
 			body: JSON.stringify({
 			  model: ENGINE_ID,
-			  messages: [{"role": "user", "content": `Ask a question to someone who wrote: ${prompt}`}],
+			  //messages: [{"role": "user", "content": `Ask a question to someone who wrote: ${prompt}`}],
+			  messages: [{"role": "user", "content": comboprompt}],
 			}),
 		  });
 		  if (!response.ok) {
@@ -255,5 +311,26 @@ class SampleSettingTab extends PluginSettingTab {
 					this.plugin.settings.mySetting = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName('Option 1')
+			.setDesc('This is option 1')
+			.addButton(button => button
+				.setButtonText('Click me')
+				.onClick(async () => {
+				this.plugin.settings.mySetting = 'Option 1 value';
+				await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Option 2')
+			.setDesc('This is option 1')
+			.addButton(button => button
+				.setButtonText('Click me')
+				.onClick(async () => {
+				this.plugin.settings.mySetting = 'Option 1 value';
+				await this.plugin.saveSettings();
+				}));
 	}
 }
+
