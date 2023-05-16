@@ -27,7 +27,6 @@ export default class MyPlugin extends Plugin {
 			const promptPrefix = await this.randomLineFromFile('prompt_library.md')
 			const openAiResponse = await this.sendTextToOpenAI(lastSentence, promptPrefix)
 			await this.appendToFile('gpt_notes.md', lastSentence, openAiResponse, promptPrefix)
-			new Notice(openAiResponse)
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
