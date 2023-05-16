@@ -24,7 +24,9 @@ export default class MyPlugin extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			const lastSentence = await this.readLastSentence();
-			const openAiResponse = await this.sendTextToOpenAI(lastSentence)
+			const promptPrefix = 'Ask a question to someone who wrote'
+			const openAiResponse = await this.sendTextToOpenAI(lastSentence, promptPrefix)
+			await this.appendToFile('gpt_notes.md', lastSentence, openAiResponse, promptPrefix)
 			new Notice(openAiResponse)
 		});
 		// Perform additional things with the ribbon
@@ -114,7 +116,8 @@ export default class MyPlugin extends Plugin {
 		  	callback: async () => {
 		  		new Notice('Test OpenAI call')
 				const prompt = 'Write a Python function that takes a string as input and returns the reversed string:';
-				const output = await this.sendTextToOpenAI(prompt);
+				const promptPrefix = 'what is a good question to ask someone that wrote:'
+				const output = await this.sendTextToOpenAI(prompt, promptPrefix);
 				new Notice(`OpenAI output: ${output}`);
 		  },
 		});
@@ -144,10 +147,23 @@ export default class MyPlugin extends Plugin {
 
 	}
 
-// 	showPopup(message: string) {
-// 		// Create and display the popup notification
-// 		new Notice(message);
-// 	  }
+	async appendToFile(filePath, sentenceText, responseText, promptPrefix) {
+		let file = this.app.vault.getAbstractFileByPath(filePath);
+
+		const updateTextSentence = 'Sentence: ' + sentenceText + '\n'
+		const updateTextPrefix = 'Prompt prefix: ' + promptPrefix + '\n'
+		const updateTextResponse = 'GPT Response: ' + responseText + '\n'
+		const updateText = `${updateTextSentence}${updateTextPrefix}${updateTextResponse}`
+
+		if (!file) {
+			// If the file doesn't exist, create it
+			file = await this.app.vault.create(filePath, updateText);
+		} else {
+			// If the file exists, append to it
+			const existingContent = await this.app.vault.read(file);
+			await this.app.vault.modify(file, existingContent + '\n\n' + updateText);
+		}
+	}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -184,7 +200,7 @@ export default class MyPlugin extends Plugin {
 		return sentences ? sentences[sentences.length - 1].trim() : null;
     }
 
-    async sendTextToOpenAI(prompt: string): Promise<string> {
+    async sendTextToOpenAI(prompt: string, promptPrefix: string): Promise<string> {
 		try {
 		  const response = await fetch(`${OPENAI_API_BASE}`, {
 			method: 'POST',
@@ -194,7 +210,7 @@ export default class MyPlugin extends Plugin {
 			},
 			body: JSON.stringify({
 			  model: ENGINE_ID,
-			  messages: [{"role": "user", "content": `Ask a question to someone who wrote: ${prompt}`}],
+			  messages: [{"role": "user", "content": `${promptPrefix}: ${prompt}`}],
 			}),
 		  });
 		  if (!response.ok) {
