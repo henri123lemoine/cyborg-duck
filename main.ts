@@ -23,7 +23,9 @@ export default class MyPlugin extends Plugin {
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			const lastSentence = await this.readLastSentence();
+
+			const lastSentence = await this.getHighlightedTextOrCallFunction(() => this.readLastSentence());
+
 			const promptPrefix = await this.randomLineFromFile('prompt_library.md')
 			const openAiResponse = await this.sendTextToOpenAI(lastSentence, promptPrefix)
 			await this.appendToFile('gpt_notes.md', lastSentence, openAiResponse, promptPrefix)
@@ -144,6 +146,47 @@ export default class MyPlugin extends Plugin {
 
 	onunload() {
 
+	}
+	async getHighlightedTextOrCallFunction(fallbackFunction) {
+		// Get the active leaf
+		const activeLeaf = this.app.workspace.activeLeaf;
+
+		// Check if activeLeaf exists and it is an instance of MarkdownView
+		if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
+			// Get the CodeMirror editor instance
+			const editor = activeLeaf.view.sourceMode.cmEditor;
+
+			// Get the selected text
+			const selection = editor.getSelection();
+
+			// If some text is selected, return it
+			if (selection) {
+				return selection;
+			}
+		}
+
+		// If no text is selected or no MarkdownView is active, call the fallback function
+		return await fallbackFunction();
+	}
+
+	async getHighlightedText() {
+		// Get the active leaf
+		const activeLeaf = this.app.workspace.activeLeaf;
+
+		// Check if activeLeaf exists and it is an instance of MarkdownView
+		if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
+			// Get the CodeMirror editor instance
+			const editor = activeLeaf.view.sourceMode.cmEditor;
+
+			// Get the selected text
+			const selection = editor.getSelection();
+
+			// Return the selected text
+			return selection;
+		} else {
+			// Return null if no MarkdownView is active or no text is selected
+			return null;
+		}
 	}
 
 	async randomLineFromFile(filePath) {
