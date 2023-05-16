@@ -24,7 +24,10 @@ export default class MyPlugin extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			const lastSentence = await this.readLastSentence();
-			const promptPrefix = 'Ask a question to someone who wrote'
+
+			const promptPrefix = await this.randomLineFromFile('prompt_library.md')
+// 			const promptPrefix = 'Ask a question to someone who wrote'
+
 			const openAiResponse = await this.sendTextToOpenAI(lastSentence, promptPrefix)
 			await this.appendToFile('gpt_notes.md', lastSentence, openAiResponse, promptPrefix)
 			new Notice(openAiResponse)
@@ -145,6 +148,27 @@ export default class MyPlugin extends Plugin {
 
 	onunload() {
 
+	}
+
+	async randomLineFromFile(filePath) {
+		let file = this.app.vault.getAbstractFileByPath(filePath);
+
+		// Check if file exists
+		if (!file) {
+			console.log('File does not exist');
+			return;
+		}
+
+		// Read file content
+		const content = await this.app.vault.read(file);
+
+		// Split content into lines
+		const lines = content.split('\n');
+
+		// Choose a random line
+		const randomLine = lines[Math.floor(Math.random() * lines.length)];
+
+		return randomLine;
 	}
 
 	async appendToFile(filePath, sentenceText, responseText, promptPrefix) {
