@@ -1,259 +1,384 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, TFile, MarkdownView, PluginSettingTab, Setting } from 'obsidian';
+import { App, MarkdownView, Plugin, PluginSettingTab, WorkspaceLeaf, ItemView, Notice, Setting, requestUrl, TFile } from 'obsidian';
+import { Configuration, OpenAIApi, ChatCompletionRequestMessage, ChatCompletionRequestMessageRoleEnum} from "openai";
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
+interface Metadata {
+    author: string;
+    date: string;
+    tags: string;
+    text: string;
+    title: string;
+    url: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+interface Match {
+    id: string;
+    metadata: Metadata;
+    score: number;
+    values: number[];
 }
 
-const OPENAI_API_KEY = 'OPENAI_API_KEY';
-const OPENAI_API_BASE = 'https://api.openai.com/v1/chat/completions';
-const ENGINE_ID = 'gpt-3.5-turbo';
+interface PineconeOutput {
+    results: number[];
+    matches: Match[];
+    namespace: string;
+}
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+interface CyborgDuckSettings {
+    pineconeApiKey: string;
+    openaiApiKey: string;
+    contextAmount: 'whole' | '3-paragraphs' | '3-sentences' | '1-sentence';
+    topK: number;
+    openaiEngineId: string;
+}
 
-	async onload() {
-		await this.loadSettings();
+const DEFAULT_SETTINGS: CyborgDuckSettings = {
+    pineconeApiKey: '',
+    openaiApiKey: '',
+    contextAmount: 'whole',
+    topK: 5,
+    openaiEngineId: 'gpt-4',
+}
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', async (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			const lastSentence = await this.readLastSentence();
-			const openAiResponse = await this.sendTextToOpenAI(lastSentence)
-			new Notice(openAiResponse)
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+const PINECONE_CONSTANTS = {
+    URL: 'https://alignment-search-14c0337.svc.us-east1-gcp.pinecone.io/query',
+    NAMESPACE: 'alignment-search'
+};
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+async function getEmbedding(text: string, openai: OpenAIApi): Promise<number[]> {
+    const response = await openai.createEmbedding({
+        model: "text-embedding-ada-002",
+        input: text,
+    });
+    
+    const embedding = response.data.data[0].embedding;
+    return embedding;
+}
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+async function getPinecone(queryEmbedding: number[], apiKey: string, topK: number): Promise<PineconeOutput | Error> {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Api-Key': apiKey,
+    };
+    const body = JSON.stringify({
+        includeValues: false,
+        includeMetadata: true,
+        vector: queryEmbedding,
+        namespace: PINECONE_CONSTANTS.NAMESPACE,
+        topK: topK,
+    });
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+    try {
+        const response = await requestUrl({ url: PINECONE_CONSTANTS.URL, headers, method: 'POST', body });
+        const data = JSON.parse(response.text);
+        return data;
+    } catch (error) {
+        console.error(error);
+        return error;
+    }
+}
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+function formatPineconeOutput(pineconeOutput: PineconeOutput): string {
+    let markdown = '';
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+    if (pineconeOutput.matches && pineconeOutput.matches.length > 0) {
+        pineconeOutput.matches.forEach((match: Match, index: number) => {
+            const { title, author, text } = match.metadata;
+            let modifiedText = text;
+            const indexOfTitleTag = text.indexOf('\n- Title: ');
+            if (indexOfTitleTag !== -1) {
+                modifiedText = text.substring(0, indexOfTitleTag);
+            }
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
-		this.addCommand({
-			id: 'start-periodic-popup',
-		  	name: 'Start periodic popup notifications',
-		  	callback: () => {
-				this.startPeriodicPopup(500); // Show a popup every 5000 milliseconds (5 seconds)
-			},
-		});
-
-		// Add a new command to stop periodic popups
-		this.addCommand({
-		  	id: 'stop-periodic-popup',
-		  	name: 'Stop periodic popup notifications',
-		  	callback: () => {
-				this.stopPeriodicPopup();
-		  	},
-		});
-
-		this.addCommand({
-			  id: 'read-last-sentence',
-			  name: 'Read last sentence',
-			  callback: () => {
-				this.readLastSentence();
-			  },
-			});
-
-		this.addCommand({
-			id: 'send-text-to-openai',
-		  	name: 'Send text to OpenAI',
-		  	callback: async () => {
-		  		new Notice('Test OpenAI call')
-				const prompt = 'Write a Python function that takes a string as input and returns the reversed string:';
-				const output = await this.sendTextToOpenAI(prompt);
-				new Notice(`OpenAI output: ${output}`);
-		  },
-		});
-	}
-
-	startPeriodicPopup(interval: number) {
-		if (this.intervalId !== null) {
-		  // If an interval is already running, stop it first
-		  this.stopPeriodicPopup();
-		}
-
-		// Schedule the popup to appear at regular intervals
-		this.intervalId = window.setInterval(() => {
-			this.Notice('This is a periodic popup notification!');
-		}, interval);
-	  }
-
-	stopPeriodicPopup() {
-    	if (this.intervalId !== null) {
-      		// Clear the interval if it's running
-      		window.clearInterval(this.intervalId);
-      		this.intervalId = null;
-		}
-  	}
-
-	onunload() {
-
-	}
-
-// 	showPopup(message: string) {
-// 		// Create and display the popup notification
-// 		new Notice(message);
-// 	  }
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-
-	async readLastSentence(): Promise<string> {
-		// Get the active markdown view
-		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-
-		if (activeView) {
-		  // Get the content of the active note
-		  const noteContent = await this.app.vault.read(activeView.file);
-
-		  // Extract the last sentence
-		  const lastSentence = this.getLastSentence(noteContent);
-
-		  // Display the last sentence
-		  if (lastSentence) {
-			return lastSentence
-		  } else {
-			new Notice('No sentence found in the active note.');
-		  }
-		} else {
-		  new Notice('No active note found.');
-		}
-	}
-
-	getLastSentence(text: string): string | null {
-		const sentences = text.match(/[^.!?]+[.!?]+/g);
-		return sentences ? sentences[sentences.length - 1].trim() : null;
+            markdown += `### ${title}\n`;
+            markdown += `By **${author}**\n\n`;
+            markdown += modifiedText + '\n\n';
+            markdown += '---\n\n';
+        });
+    } else {
+        markdown = 'No matches found.';
     }
 
-    async sendTextToOpenAI(prompt: string): Promise<string> {
-		try {
-		  const response = await fetch(`${OPENAI_API_BASE}`, {
-			method: 'POST',
-			headers: {
-			  'Content-Type': 'application/json',
-			  'Authorization': `Bearer ${OPENAI_API_KEY}`,
-			},
-			body: JSON.stringify({
-			  model: ENGINE_ID,
-			  messages: [{"role": "user", "content": `Ask a question to someone who wrote: ${prompt}`}],
-			}),
-		  });
-		  if (!response.ok) {
-			new Notice(`BAD RESPONSE`)
-			throw new Error('Network response was not ok');
-		  }
-
-		  const data = await response.json();
-
-		  return `${data.choices[0].message.content.trim()}`;
-		} catch (error) {
-		  console.error('Error sending text to OpenAI:', error);
-		  return 'Error';
-		}
-	  }
-
+    return markdown;
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
+async function createMarkdownFile(app: App, content: string): Promise<TFile | {markdown: string}> {
+    const filename = `Generated-${Date.now()}.md`;
+    const file = await app.vault.create(filename, content);
+    return file;
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+// Fetch a response from the OpenAI API
+async function fetchOpenAIResponse(messages: ChatCompletionRequestMessage[], openai: OpenAIApi): Promise<any> {
+    try {
+        const completion = await openai.createChatCompletion({
+            model: this.settings.engine_id,
+            messages: messages,
+        });
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+        return completion.data;
+    } catch (error) {
+        console.error("Error fetching response from OpenAI:", error);
+        throw error;
+    }
+}
 
-	display(): void {
-		const {containerEl} = this;
 
-		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+class MyCustomView extends ItemView {
+    content: string;
 
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+    constructor(leaf: WorkspaceLeaf, content: string) {
+        super(leaf);
+        this.content = content;
+    }
+
+    getViewType(): string {
+        return 'my-custom-view';
+    }
+
+    getDisplayText(): string {
+        return 'My Custom View';
+    }
+
+    async onOpen() {
+        this.contentEl.empty();
+        this.contentEl.createEl('div', { text: this.content });
+    }
+}
+
+export default class CyborgDuck extends Plugin {
+    settings: CyborgDuckSettings;
+    openai: OpenAIApi;
+    
+    setOpenAI() {
+        const configuration = new Configuration({
+            apiKey: this.settings.openaiApiKey,
+        });
+        this.openai = new OpenAIApi(configuration);
+    }
+
+    async onload() {
+        await this.loadSettings();
+        this.addSettingTab(new CyborgDuckSettingTab(this.app, this));
+        this.setOpenAI();
+        this.registerView('my-custom-view', (leaf: WorkspaceLeaf) => new MyCustomView(leaf, ''));
+        this.addRibbonIcon('dice', 'Open My Custom View', () => this.getTopContext());
+    
+        this.addCommand({
+            id: 'get-context',
+            name: 'Get ARD Relevant Context',
+            checkCallback: (checking: boolean) => {
+                const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!activeView) return false;
+                if (checking) return true;
+                this.getTopContext();
+            },
+            hotkeys: [{
+                modifiers: ['Alt'],
+                key: 'd',
+            }],
+        });
+
+        this.addCommand({
+            id: 'get-random-prompt-completion',
+            name: 'Get Random Prompt Completion',
+            checkCallback: (checking: boolean) => {
+                const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!activeView) return false;
+                if (checking) return true;
+                this.getTopContext();
+            },
+            hotkeys: [{
+                modifiers: ['Alt'],
+                key: 'd',
+            }],
+        });
+
+    }
+
+    async getTopContext(createLeaf: boolean = true) {
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!activeView) {
+            new Notice('No active note found.');
+            return;
+        }
+    
+        const editor = activeView.editor;
+        const noteContent = editor.getValue();
+    
+        getEmbedding(noteContent, this.openai)
+            .then((queryEmbedding) => getPinecone(queryEmbedding, this.settings.pineconeApiKey, this.settings.topK))
+            .then((pineconeResponse) => {
+                if (pineconeResponse instanceof Error) throw pineconeResponse;
+                const markdown = formatPineconeOutput(pineconeResponse);
+                if(createLeaf) {
+                    return createMarkdownFile(this.app, markdown);
+                } else {
+                    return Promise.resolve({markdown});
+                }
+            })
+            .then((markdownOrFile) => {
+                if (createLeaf && 'path' in markdownOrFile) { // TFile has 'path' property
+                    this.openFileInNewLeaf(markdownOrFile);
+                } else if (!createLeaf && 'markdown' in markdownOrFile) {
+                    console.log(markdownOrFile.markdown);  // or do something else with the markdown content
+                }
+            })
+            .catch((error) => console.error(error));
+    }
+    
+    async openFileInNewLeaf(file: TFile) {
+        const newLeaf = this.app.workspace.getRightLeaf(false);
+        newLeaf.openFile(file);
+        this.app.workspace.setActiveLeaf(newLeaf);
+    }
+
+    async getHighlightedText() {
+		// Get the active leaf
+		const activeLeaf = this.app.workspace.activeLeaf;
+
+		// Check if activeLeaf exists and it is an instance of MarkdownView
+		if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
+			// Get the CodeMirror editor instance
+            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+
+            // Check if activeView exists
+            if (activeView) {
+                const editor = activeView.editor;
+                const selection = editor.getSelection();
+                return selection;
+            } else {
+                // Return null if no MarkdownView is active or no text is selected
+                return null;
+            }
+        }
+    }
+
+    async getRandomPrompt(model: string): Promise<string> {
+        try {
+            // Read the JSON file
+            const promptLibraryPath = path.resolve(this.manifest.dir || '', 'prompt-library.json');
+            const data = fs.readFileSync(promptLibraryPath, 'utf-8');
+            const promptLibrary = JSON.parse(data);
+        
+            if (!(model in promptLibrary["chat-prompts"])) {
+                throw new Error(`Model "${model}" not found in the prompt library.`);
+            }
+
+            const prompts = promptLibrary["chat-prompts"][model];
+            const randomPromptIndex = Math.floor(Math.random() * prompts.length);
+            return prompts[randomPromptIndex];
+
+        } catch (error) {
+            console.error("Error reading from prompt library:", error);
+            throw error;
+        }
+    }
+
+    async getChatCompletionRequestMessage(context: string = "", sources: string[] = []): Promise<ChatCompletionRequestMessage[]> {
+        try {
+            const contextPrompt = await this.getRandomPrompt("rubber-duck");
+            const messages: ChatCompletionRequestMessage[] = [
+                ...sources.map(source => ({role: ChatCompletionRequestMessageRoleEnum.System, content: source})),
+                {role: ChatCompletionRequestMessageRoleEnum.System, content: contextPrompt},
+                {role: ChatCompletionRequestMessageRoleEnum.User, content: context},
+            ];
+            return messages;
+        } catch (error) {
+            console.error("Error creating chat completion request messages:", error);
+            throw error;
+        }
+    }
+
+            
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
+}
+
+
+class CyborgDuckSettingTab extends PluginSettingTab {
+    plugin: CyborgDuck;
+
+    constructor(app: App, plugin: CyborgDuck) {
+        super(app, plugin);
+        this.plugin = plugin;
+    }
+
+    display(): void {
+        let { containerEl } = this;
+
+        containerEl.empty();
+
+        containerEl.createEl('h2', { text: 'Cyborg Duck Settings' });
+
+        new Setting(containerEl)
+            .setName('Context Amount')
+            .setDesc('How much context to send to GPT-3')
+            .addDropdown(dropdown => 
+                dropdown
+                    .addOption('whole', 'Whole note')
+                    .addOption('3-paragraphs', 'Last 3 paragraphs')
+                    .addOption('3-sentences', 'Last 3 sentences')
+                    .addOption('1-sentence', 'Last sentence')
+                    .setValue(this.plugin.settings.contextAmount)
+                    .onChange(async (value) => {
+                        this.plugin.settings.contextAmount = value as 'whole' | '3-paragraphs' | '3-sentences' | '1-sentence';
+                        await this.plugin.saveSettings();
+                    }));
+
+        containerEl.createEl('h3', { text: 'Pinecone' });
+
+        new Setting(containerEl)
+            .setName('API Key')
+            .setDesc('Enter your Pinecone API key')
+            .addText(text => text
+                .setPlaceholder('Enter your API key here...')
+                .setValue(this.plugin.settings.pineconeApiKey)
+                .onChange(async (value) => {
+                    this.plugin.settings.pineconeApiKey = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Top K Results')
+            .setDesc('Number of top matching results to return')
+            .addText(text => text
+                .setPlaceholder('Enter the number of results (default: 5)')
+                .setValue(this.plugin.settings.topK.toString())
+                .onChange(async (value) => {
+                    this.plugin.settings.topK = parseInt(value) || 5;
+                    await this.plugin.saveSettings();
+                }));
+
+        containerEl.createEl('h3', { text: 'OpenAI' });
+        
+        new Setting(containerEl)
+            .setName('API Key')
+            .setDesc('Enter your OpenAI API key')
+            .addText(text => text
+                .setPlaceholder('Enter your API key here...')
+                .setValue(this.plugin.settings.openaiApiKey)
+                .onChange(async (value) => {
+                    this.plugin.settings.openaiApiKey = value;
+                    await this.plugin.saveSettings();
+                }));
+        
+        new Setting(containerEl)
+            .setName('OpenAI Engine ID')
+            .setDesc('Model to use for completions.')
+            .addText(text => text
+                .setPlaceholder('Enter the model for completions (default: gpt-4)')
+                .setValue(this.plugin.settings.openaiEngineId)
+                .onChange(async (value) => {
+                    this.plugin.settings.openaiEngineId = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
 }
