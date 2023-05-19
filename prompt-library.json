@@ -5,40 +5,40 @@
     "last_updated": "2023-05-13",
     "chat-prompts": {
         "rubber-duck": [
-            {"system": "You are a helpful rubber-duck assistant."},
-            {"user": "Read the context and think of a useful question that would prompt further thinking.\n\n{context}"}
+            {"role": "system", "content": "You are a helpful rubber-duck assistant."},
+            {"role": "user", "content": "Read the context and think of a useful question that would prompt further thinking.\n\n{context}"}
         ],
         "informed-rubber-duck": [
-            {"system": "You are a knowledgeable rubber-duck assistant, capable of context-driven reasoning and informed by specific sources."},
-            {"user": "Below you will find a selection of sources from the Alignment Research Dataset, followed by a user-written text. Your task is to digest the provided sources and use them to generate thoughtful questions about the user's text. These questions should aim to stimulate further thinking, correct any misconceptions, and preemptively answer queries that a reader might have while reading.\n\n{sources}\n\nText:\n---\n{context}\n---\n\nPlease generate 5 informed, relevant, and thought-provoking questions based on this context. Cite any specific information drawn from the sources in your questions using the format: [a], [b], etc. If you use multiple sources to inform a question, cite all of them."}
+            {"role": "system", "content": "You are a knowledgeable rubber-duck assistant, capable of context-driven reasoning and informed by specific sources."},
+            {"role": "user", "content": "Below you will find a selection of sources from the Alignment Research Dataset, followed by a user-written text. Your task is to digest the provided sources and use them to generate thoughtful questions about the user's text. These questions should aim to stimulate further thinking, correct any misconceptions, and preemptively answer queries that a reader might have while reading.\n\n{sources}\n\nText:\n---\n{context}\n---\n\nPlease generate 5 informed, relevant, and thought-provoking questions based on this context. Cite any specific information drawn from the sources in your questions using the format: [a], [b], etc. If you use multiple sources to inform a question, cite all of them."}
         ],
         "informed-question-answering": [
-            {"system": "You are a helpful assistant knowledgeable about AI alignment and safety."},
-            {"user": "Please give a clear and coherent answer to the user's question (written after \"Q:\") using the following sources. Each source is labeled with a letter. Feel free to use the sources in any order, and try to use multiple sources in your answers.\n\n{sources}\n\nIn your answer, please cite any claims you make back to each source using the format: [a], [b], etc. If you use multiple sources to make a claim, cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: {context}"}
+            {"role": "system", "content": "You are a helpful assistant knowledgeable about AI alignment and safety."},
+            {"role": "user", "content": "Please give a clear and coherent answer to the user's question (written after \"Q:\") using the following sources. Each source is labeled with a letter. Feel free to use the sources in any order, and try to use multiple sources in your answers.\n\n{sources}\n\nIn your answer, please cite any claims you make back to each source using the format: [a], [b], etc. If you use multiple sources to make a claim, cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: {context}"}
         ],
         "concept-explanation": [
-            {"system": "You are a knowledgeable assistant capable of explaining complex concepts in simple terms."},
-            {"user": "Please provide a clear and concise explanation of the following context:\n\n{context}"}
+            {"role": "system", "content": "You are a knowledgeable assistant capable of explaining complex concepts in simple terms."},
+            {"role": "user", "content": "Please provide a clear and concise explanation of the following context:\n\n{context}"}
         ],
         "paper-summary": [
-            {"system": "You are an adept assistant capable of summarizing scientific literature."},
-            {"user": "Please read the following context and provide a summary that captures the main points and findings:\n\n{context}"}
+            {"role": "system", "content": "You are an adept assistant capable of summarizing scientific literature."},
+            {"role": "user", "content": "Please read the following context and provide a summary that captures the main points and findings:\n\n{context}"}
         ],
         "source-evaluation": [
-            {"system": "You are a discerning assistant capable of evaluating the credibility of information sources."},
-            {"user": "Please evaluate the credibility of the following context:\n\n{context}"}
+            {"role": "system", "content": "You are a discerning assistant capable of evaluating the credibility of information sources."},
+            {"role": "user", "content": "Please evaluate the credibility of the following context:\n\n{context}"}
         ],
         "hypothesis-testing": [
-            {"system": "You are a scientific assistant capable of assessing research hypotheses."},
-            {"user": "Please consider the following context and propose a way to test its validity:\n\n{context}"}
+            {"role": "system", "content": "You are a scientific assistant capable of assessing research hypotheses."},
+            {"role": "user", "content": "Please consider the following context and propose a way to test its validity:\n\n{context}"}
         ],
         "literature-review": [
-            {"system": "You are an analytical assistant capable of conducting literature reviews."},
-            {"user": "Please compile and summarize key points from a collection of sources on the following context:\n\n{context}\n\n{sources}"}
+            {"role": "system", "content": "You are an analytical assistant capable of conducting literature reviews."},
+            {"role": "user", "content": "Please compile and summarize key points from a collection of sources on the following context:\n\n{context}\n\n{sources}"}
         ],
         "future-projections": [
-            {"system": "You are a forward-thinking assistant capable of making informed predictions."},
-            {"user": "Based on the current research and trends in the following context, please speculate on potential future developments:\n\n{context}"}
+            {"role": "system", "content": "You are a forward-thinking assistant capable of making informed predictions."},
+            {"role": "user", "content": "Based on the current research and trends in the following context, please speculate on potential future developments:\n\n{context}"}
         ]
     },
     "base-model-prompts": {
