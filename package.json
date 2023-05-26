@@ -23,6 +23,10 @@
 	},
 	"dependencies": {
 		"@pinecone-database/pinecone": "^0.1.5",
-		"openai": "^3.2.1"
+		"gpt-tokenizer": "^2.0.0",
+		"js-tiktoken": "^1.0.6",
+		"openai": "^3.2.1",
+		"tiktoken": "^1.0.7",
+		"tiktoken-node": "^0.0.6"
 	}
 }
