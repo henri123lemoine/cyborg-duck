@@ -2,15 +2,13 @@
 
 import * as fs from 'fs/promises';
 import { App, MarkdownView, Plugin, Notice, TFile, Editor, requestUrl } from 'obsidian';
-import { Configuration, OpenAIApi, ChatCompletionRequestMessage, ChatCompletionRequestMessageRoleEnum } from "openai";
+import { Configuration, OpenAIApi, ChatCompletionRequestMessage as Message, ChatCompletionRequestMessageRoleEnum } from "openai";
 import { getEncoding } from "js-tiktoken";
 
 import { DEFAULT_SETTINGS, CyborgDuckSettings, CyborgDuckSettingTab } from './src/SettingsHelper';
 import { CommandManager } from './src/CommandManager';
 import { Entry } from './src/LibraryHelper';
 
-// CONSTANTS
-const TOKEN_LIMIT = 8191;
 
 // INTERFACES
 interface Block {
@@ -45,10 +43,18 @@ interface PineconeOutput {
     namespace: string;
 }
 
+
+// CONSTANTS
+const TOKEN_LIMIT = 8191;
 export const PINECONE_CONSTANTS = {
     URL: 'https://alignment-search-14c0337.svc.us-east1-gcp.pinecone.io/query',
     NAMESPACE: 'alignment-search'
 };
+
+
+// TYPES
+type PromptData = string | Message[];
+
 
 // Helper class to manage creation and actions of buttons
 class ButtonManager {
@@ -64,38 +70,48 @@ class ButtonManager {
 
     createButton(entry: Entry): HTMLButtonElement {
         const button = document.createElement('button');
+        button.classList.add('cyborg-duck-button'); // This will help to identify buttons created by this plugin
         button.textContent = entry.Name;
         button.addEventListener('click', () => this.plugin.performButtonClickActions(entry));
         return button;
     }
 }
 
-// Main plugin class
+
 export default class CyborgDuck extends Plugin {
     settings: CyborgDuckSettings;
     private openai: OpenAIApi;
     private commandManager: CommandManager;
     private buttonManager: ButtonManager;
 
+    // Use a variable to track if buttons are displayed
+    private buttonsDisplayed: boolean = false;
+
     // Upon loading the plugin
     async onload() {
+        console.log('Loading Cyborg Duck plugin');
+
         await this.loadSettings();
 
         // This adds a settings tab so the user can configure various aspects of the plugin
         this.addSettingTab(new CyborgDuckSettingTab(this.app, this));
 
+        // Set up OpenAI API
         const configuration = new Configuration({
             apiKey: this.settings.openaiApiKey,
         });
         this.openai = new OpenAIApi(configuration);
 
+        // Set up command and button managers
         this.commandManager = new CommandManager(this.app, this);
         this.buttonManager = new ButtonManager(this.app, this, this.commandManager);
 
+        // Add prompt buttons
         this.addRibbonIcon('activity', 'PromptSelect', async () => {
             // Fetching data from local JSON file
             if (!this.settings.promptLibraryPath) {
-                // new Notice('Prompt library path is not set in the plugin settings. Set it before continuing.');
+                new Notice('Prompt library path is not set in the plugin settings. Set it before continuing.');
+                console.error('Prompt library path is not set in the plugin settings. Set it before continuing.');
                 return;
             }
             
@@ -112,7 +128,6 @@ export default class CyborgDuck extends Plugin {
                     
             const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (markdownView) {
-                console.log('Current file path:', markdownView.file.path);
                 this.displayButtons(promptLibrary);
             }
         
@@ -129,28 +144,24 @@ export default class CyborgDuck extends Plugin {
             */
         });
 
-        this.addCommand({
-            id: 'get-semantic-search-context',
-            name: 'Get ARD Relevant Context',
-            checkCallback: (checking: boolean) => {
-                if (checking) return true;
-                this.displaySemanticSearch();
-            },
-            hotkeys: [{
-                modifiers: ['Alt'],
-                key: 'd',
-            }],
-        });
+        // this.addCommand({
+        //     id: 'get-semantic-search-context',
+        //     name: 'Get ARD Relevant Context',
+        //     checkCallback: (checking: boolean) => {
+        //         if (checking) return true;
+        //         this.displaySemanticSearch();
+        //     },
+        //     hotkeys: [{
+        //         modifiers: ['Alt'],
+        //         key: 'd',
+        //     }],
+        // });
     }
 
     // Clean up any created elements upon plugin unload
     onunload() {
-        this.app.workspace.iterateAllLeaves((leaf) => {
-            const buttonsDiv = leaf.containerEl.querySelector('.my-plugin-buttons');
-            if (buttonsDiv) {
-              buttonsDiv.remove();
-            }
-        });
+        this.removeAllButtons();
+        console.log('Unloading Cyborg Duck plugin');
     }
 
     // Creates a new markdown file with the given content and a timestamp-based filename
@@ -159,130 +170,64 @@ export default class CyborgDuck extends Plugin {
         const file = this.app.vault.create(filename, content);
         return file;
     }
+            
+    // Opens a given file in a new leaf (tab) in the workspace and sets it as active
+    async openFileInNewLeaf(file: TFile) {
+        const newLeaf = this.app.workspace.getRightLeaf(false);
+        newLeaf.openFile(file);
+        this.app.workspace.setActiveLeaf(newLeaf);
+    }
+
+
+    /////////////////////////////
+    // START OF BUTTON SECTION //
+    /////////////////////////////
+    
+    removeAllButtons() {
+        const buttons = document.querySelectorAll('.cyborg-duck-button'); // Select all buttons created by this plugin
+        buttons.forEach(button => button.remove());
+        this.buttonsDisplayed = false;
+    }
 
     // Adds buttons to the markdown view for each entry in the provided prompt library
-    displayButtons(prompt_library: Entry[]) {
+    async displayButtons(prompt_library: Entry[]) {
         const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!markdownView) return;
 
-        const buttonsDiv = document.createElement('div');
-        buttonsDiv.addClass('my-plugin-buttons');
-        
-        for (const entry of prompt_library) {
-            const button = this.buttonManager.createButton(entry);
-            buttonsDiv.appendChild(button);
-        }
-        markdownView.containerEl.parentElement?.appendChild(buttonsDiv);
-    }
-
-
-    // Handles the processing and actions when a button related to an entry is clicked
-    async performButtonClickActions(entry: Entry) {
-        const processedPromptData = await this.processPromptData(entry.Prompt);
-        const completion = await this.getOpenAICompletion(processedPromptData);
-        const completionFile = await this.createMarkdownFile(completion);
-        await this.openFileInNewLeaf(completionFile);
-    }
-    
-    // Makes a request to OpenAI's API, either a chat or text completion depending on the input data type
-    async getOpenAICompletion(data: string | ChatCompletionRequestMessage[]): Promise<any> {
-        try {
-            const isBaseModel = typeof data === 'string';
-            
-            if (isBaseModel) {
-                const completion = await this.openai.createCompletion({
-                    model: 'davinci',
-                    prompt: data as string,
-                    // max_tokens: 100,
-                });
-                return completion.data.choices[0].text;
-            } else {
-                const completion = await this.openai.createChatCompletion({
-                    model: 'gpt-3.5-turbo',
-                    messages: data,
-                });
-                return completion.data.choices[0].message?.content;
-            }
-        } catch (error) {
-            console.error("Error fetching response from OpenAI:", error);
-            throw error;
-        }
-    }
-
-    // Constructs a prompt by replacing placeholders with user context and sources
-    private async buildPrompt(prompt: string): Promise<string> {
-        const containsExcerptOrContext = prompt.includes('{excerpt}') || prompt.includes('{context}');
-        const containsSources = prompt.includes('{sources}');
-        const [userContext, formattedSources] = await this.getContextAndSources(containsExcerptOrContext, containsSources);
-        prompt = prompt.replace('{excerpt}', userContext).replace('{context}', userContext).replace('{sources}', formattedSources);
-        return prompt;
-    }
-    
-    // Builds a sequence of chat messages, replacing placeholders with user context and sources
-    private async buildMessages(unbuiltMessages: any[]): Promise<{message: ChatCompletionRequestMessage[]}> {
-        unbuiltMessages = await this.translateMessages(unbuiltMessages);
-        const containsExcerptOrContext = unbuiltMessages.some(message => message.content.includes('{excerpt}') || message.content.includes('{context}'));
-        const containsSources = unbuiltMessages.some(message => message.content.includes('{sources}'));
-        const [userContext, formattedSources] = await this.getContextAndSources(containsExcerptOrContext, containsSources);
-        return { message: this.getChatCompletionRequestMessage(unbuiltMessages, userContext, formattedSources) };
-    }
-    
-    // Retrieves the user context and sources based on the flags indicating their presence in the prompt or chat messages
-    private async getContextAndSources(containsExcerptOrContext: boolean, containsSources: boolean): Promise<[string, string]> {
-        let userContext = "";
-        let formattedSources = "";
-    
-        if (containsExcerptOrContext || containsSources) {
-            userContext = await this.getContext();
-        }
-    
-        if (containsSources) {
-            const queryEmbedding = await this.getEmbedding(userContext);
-            const pineconeResponse = await this.getPinecone(queryEmbedding, this.settings.pineconeApiKey, this.settings.topK);
-            if (pineconeResponse instanceof Error) throw pineconeResponse;
-    
-            formattedSources = this.formatPineconeSources(pineconeResponse);
-        }
-    
-        return [userContext, formattedSources];
-    }
-        
-    // Formats a list of chat completion request messages by substituting special placeholders with given context and sources
-    private getChatCompletionRequestMessage(messages: ChatCompletionRequestMessage[], context: string = "", sources: string = ""): ChatCompletionRequestMessage[] {
-        return messages.map(message => {
-            return {
-                ...message,
-                content: message.content.replace('{excerpt}', context).replace('{context}', context).replace('{sources}', sources)
-            };
-        });
-    }
-    
-    // Transforms a list of raw message objects into a list of chat completion request messages
-    private async translateMessages(messages: any[]): Promise<ChatCompletionRequestMessage[]> {
-        return messages.map((message) => {
-            return {
-                role: message["role"] as ChatCompletionRequestMessageRoleEnum,
-                content: message["content"],
-            };
-        });
-    }
-
-    // Processes the prompt data to be passed to the chat model, which can be either a simple string or an array of chat messages
-    private async processPromptData(promptData: string | any[]): Promise<string | ChatCompletionRequestMessage[]> {
-        let processedPromptData: string | ChatCompletionRequestMessage[];
-    
-        if (typeof promptData === "string") {
-            processedPromptData = await this.buildPrompt(promptData);
-        } else if (Array.isArray(promptData)) {
-            const updatedMessageObject = await this.buildMessages(promptData);
-            processedPromptData = updatedMessageObject.message;
+        // Remove existing buttons
+        if (this.buttonsDisplayed) {
+            this.removeAllButtons();
         } else {
-            throw new Error("Invalid prompt format.");
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.classList.add('cyborg-duck-buttons');
+
+            // If usePinecone is false, assume that the Pinecone API key is not valid.
+            // Otherwise, get the result of this.isPineconeKeyValid() asynchronously.
+            const pineconeValid = this.settings.usePinecone ? await this.isPineconeKeyValid() : false;
+            console.log('Pinecone key valid:', pineconeValid);
+        
+            for (const entry of prompt_library) {
+                if (Array.isArray(entry.Prompt) && !(pineconeValid)) {
+                    continue;
+                }
+
+                const button = this.buttonManager.createButton(entry);
+                buttonsDiv.appendChild(button);
+            }
+            markdownView.containerEl.parentElement?.appendChild(buttonsDiv);
+            this.buttonsDisplayed = true;
         }
-    
-        return processedPromptData;
     }
-    
+
+    ///////////////////////////
+    // END OF BUTTON SECTION //
+    ///////////////////////////
+
+
+    //////////////////////////////////
+    // START OF GET CONTEXT SECTION //
+    //////////////////////////////////
+
     // Retrieves the context from the active markdown note in the workspace, either the highlighted text or based on the settings
     private async getContext(): Promise<string> {
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -330,13 +275,124 @@ export default class CyborgDuck extends Plugin {
         return paragraphs.slice(Math.max(paragraphs.length - paragraphCount, 0)).join('\n\n');
     }
 
-    // Opens a given file in a new leaf (tab) in the workspace and sets it as active
-    async openFileInNewLeaf(file: TFile) {
-        const newLeaf = this.app.workspace.getRightLeaf(false);
-        newLeaf.openFile(file);
-        this.app.workspace.setActiveLeaf(newLeaf);
+    // Retrieves the user context and sources based on the flags indicating their presence in the prompt or chat messages
+    private async retrieveContextAndSources(containsExcerptOrContext: boolean, containsSources: boolean): Promise<[string, string]> {
+        let userContext = "";
+        let formattedSources = "";
+    
+        if (containsExcerptOrContext || containsSources) {
+            userContext = await this.getContext();
+        }
+    
+        if (containsSources) {
+            const queryEmbedding = await this.getEmbedding(userContext);
+            const pineconeResponse = await this.getPinecone(queryEmbedding, this.settings.pineconeApiKey, this.settings.topK);
+            if (pineconeResponse instanceof Error) throw pineconeResponse;
+    
+            formattedSources = this.formatPineconeSources(pineconeResponse);
+        }
+    
+        return [userContext, formattedSources];
     }
 
+    ////////////////////////////////
+    // END OF GET CONTEXT SECTION //
+    ////////////////////////////////
+
+
+    //////////////////////////////////////
+    // START OF PROMPT CREATION SECTION //
+    //////////////////////////////////////
+
+    // Handles the processing and actions when a button related to an entry is clicked
+    async performButtonClickActions(entry: Entry) {
+        const processedPromptData = await this.createPrompt(entry.Prompt);
+        console.log('Processed prompt data:', processedPromptData);
+        const completion = await this.getOpenAICompletion(processedPromptData);
+        const completionFile = await this.createMarkdownFile(completion);
+        await this.openFileInNewLeaf(completionFile);
+    }
+
+    // Prepares and returns the data to be passed to the OpenAI API. It could be either a simple string or an array of chat messages
+    async createPrompt(promptData: PromptData): Promise<PromptData> {
+        // Validate prompt data
+        if (typeof promptData !== "string" && !Array.isArray(promptData)) {
+            throw new Error("Invalid prompt format.");
+        }
+
+        // Check for placeholders
+        const containsExcerptOrContext = this.doesDataContainPlaceholders(promptData, ['{excerpt}', '{context}']);
+        const containsSources = this.doesDataContainPlaceholders(promptData, ['{sources}']);
+        
+        // Get context and sources
+        const [userContext, formattedSources] = await this.retrieveContextAndSources(containsExcerptOrContext, containsSources);
+        
+        // Replace placeholders with actual values
+        const processedPromptData = this.replacePlaceholders(promptData, userContext, formattedSources);
+        
+        return processedPromptData;
+    }
+
+    // Checks if the given data contains any of the specified placeholders
+    private doesDataContainPlaceholders(data: PromptData, placeholders: string[]): boolean {
+        if (typeof data === 'string') {
+            return placeholders.some(placeholder => data.includes(placeholder));
+        } else {
+            return data.some(message => placeholders.some(placeholder => message.content.includes(placeholder)));
+        }
+    }
+
+    // Replaces the placeholders in the given data with the provided context and sources
+    private replacePlaceholders(data: PromptData, context: string, sources: string): PromptData {
+        if (typeof data === 'string') {
+            return data.replace('{excerpt}', context).replace('{context}', context).replace('{sources}', sources);
+        } else {
+            return data.map(message => ({
+                ...message,
+                content: message.content.replace('{excerpt}', context).replace('{context}', context).replace('{sources}', sources)
+            }));
+        }
+    }    
+
+    ////////////////////////////////////
+    // END OF PROMPT CREATION SECTION //
+    ////////////////////////////////////
+
+
+    /////////////////////////////
+    // START OF OPENAI SECTION //
+    /////////////////////////////
+
+    // Makes a request to OpenAI's API, either a chat or text completion depending on the input data type
+    async getOpenAICompletion(data: string | Message[]): Promise<any> {
+        try {
+            const isBaseModel = typeof data === 'string';
+            
+            if (isBaseModel) {
+                const completion = await this.openai.createCompletion({
+                    model: 'davinci',
+                    prompt: data as string,
+                    // max_tokens: 100,
+                });
+                return completion.data.choices[0].text;
+            } else {
+                const completion = await this.openai.createChatCompletion({
+                    model: 'gpt-3.5-turbo',
+                    messages: data,
+                });
+                return completion.data.choices[0].message?.content;
+            }
+        } catch (error) {
+            console.error("Error fetching response from OpenAI:", error);
+            throw error;
+        }
+    }
+
+    ///////////////////////////
+    // END OF OPENAI SECTION //
+    ///////////////////////////
+
+    
     ///////////////////////////////
     // START OF PINECONE SECTION //
     ///////////////////////////////
@@ -456,35 +512,44 @@ export default class CyborgDuck extends Plugin {
             const data = JSON.parse(response.text);
             return data;
         } catch (error) {
-            console.error(error);
+            console.error('Error message:', error.message);
+            console.log('This error is possibly from an incorrect API key. Make sure the API key is correct and try again.');
+            new Notice('Error fetching response from Pinecone. This error is possibly from an incorrect API key. Make sure the API key is correct and try again.');
             return error;
         }
+    }
+
+    async isPineconeKeyValid(): Promise<boolean> {
+        const embedding = await this.getEmbedding('');
+        const pineconeResponse = await this.getPinecone(embedding, this.settings.pineconeApiKey, 1);
+        console.log('Pinecone response:', pineconeResponse);
+        return pineconeResponse instanceof Error ? false : true;
     }
     
     // Takes in a context string, performs a semantic search, and returns the formatted search results as a Markdown string
     // and a file containing the Markdown string
-    async getSemanticSearchResults(context: string): Promise<{markdown: string, markdownOrFile: any}> {
-        const queryEmbedding = await this.getEmbedding(context);
-        const pineconeResponse = await this.getPinecone(queryEmbedding, this.settings.pineconeApiKey, this.settings.topK);
-        if (pineconeResponse instanceof Error) throw pineconeResponse;
+    // async getSemanticSearchResults(context: string): Promise<{markdown: string, markdownOrFile: any}> {
+    //     const queryEmbedding = await this.getEmbedding(context);
+    //     const pineconeResponse = await this.getPinecone(queryEmbedding, this.settings.pineconeApiKey, this.settings.topK);
+    //     if (pineconeResponse instanceof Error) throw pineconeResponse;
         
-        const markdown = this.formatPineconeOutput(pineconeResponse);
-        const markdownOrFile = await this.createMarkdownFile(markdown);
+    //     const markdown = this.formatPineconeOutput(pineconeResponse);
+    //     const markdownOrFile = await this.createMarkdownFile(markdown);
         
-        return {markdown, markdownOrFile};
-    }
+    //     return {markdown, markdownOrFile};
+    // }
 
     // Retrieves the context for a semantic search, performs the search, and displays the results in a new leaf (file)
-    async displaySemanticSearch(): Promise<void> {
-        try {
-            const context = await this.getContext();
-            const {markdown, markdownOrFile} = await this.getSemanticSearchResults(context);
-            await this.openFileInNewLeaf(markdownOrFile);
-        } catch (error) {
-            console.error(error);
-            // new Notice(error.message);
-        }
-    }
+    // async displaySemanticSearch(): Promise<void> {
+    //     try {
+    //         const context = await this.getContext();
+    //         const {markdown, markdownOrFile} = await this.getSemanticSearchResults(context);
+    //         await this.openFileInNewLeaf(markdownOrFile);
+    //     } catch (error) {
+    //         console.error(error);
+    //         // new Notice(error.message);
+    //     }
+    // }
 
     /////////////////////////////
     // END OF PINECONE SECTION //
