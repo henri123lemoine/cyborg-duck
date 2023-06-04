@@ -1,7 +1,7 @@
 // main.ts
 
 import * as fs from 'fs/promises';
-import { App, MarkdownView, Plugin, Notice, TFile, Editor, requestUrl } from 'obsidian';
+import { App, MarkdownView, Plugin, Notice, TFile, Editor, requestUrl, Command } from 'obsidian';
 import { Configuration, OpenAIApi, ChatCompletionRequestMessage as Message, ChatCompletionRequestMessageRoleEnum } from "openai";
 import { getEncoding } from "js-tiktoken";
 
@@ -106,25 +106,13 @@ export default class CyborgDuck extends Plugin {
         this.commandManager = new CommandManager(this.app, this);
         this.buttonManager = new ButtonManager(this.app, this, this.commandManager);
 
+        // Set up hotkeys
+        await this.setUpHotkeys();
+
         // Add prompt buttons
         this.addRibbonIcon('activity', 'PromptSelect', async () => {
-            // Fetching data from local JSON file
-            if (!this.settings.promptLibraryPath) {
-                new Notice('Prompt library path is not set in the plugin settings. Set it before continuing.');
-                console.error('Prompt library path is not set in the plugin settings. Set it before continuing.');
-                return;
-            }
-            
-            // Requiring the file will only work if this is running in a Node.js environment. 
-            // If this is running in a browser environment, you'll need a different method to read the file.
-            let promptLibrary: Entry[];
-            try {
-                const data = await fs.readFile(this.settings.promptLibraryPath, 'utf8');
-                promptLibrary = JSON.parse(data) as Entry[];
-            } catch (error) {
-                console.error(`Error reading JSON file: ${error}`);
-                return;
-            }
+            // Fetching Prompt Library
+            const promptLibrary = await this.getPromptLibrary();
                     
             const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (markdownView) {
@@ -162,6 +150,45 @@ export default class CyborgDuck extends Plugin {
     onunload() {
         this.removeAllButtons();
         console.log('Unloading Cyborg Duck plugin');
+    }
+
+    // Helper function to convert the prompt name to a suitable command ID
+    private generateCommandID(name: string): string {
+        // Replace spaces with dashes, convert to lowercase and remove special characters
+        return name.replace(/ /g, '-').toLowerCase().replace(/[^a-z0-9-_]/g, '');
+    }
+
+    private async getPromptLibrary(): Promise<Entry[]> {
+        if (!this.settings.promptLibraryPath) {
+            new Notice('Prompt library path is not set in the plugin settings. Set it before continuing.');
+            console.error('Prompt library path is not set in the plugin settings. Set it before continuing.');
+            return [];
+        }
+
+        // Requiring the file will only work if this is running in a Node.js environment. 
+        // If this is running in a browser environment, you'll need a different method to read the file.
+        let promptLibrary: Entry[];
+        try {
+            const data = await fs.readFile(this.settings.promptLibraryPath, 'utf8');
+            promptLibrary = JSON.parse(data) as Entry[];
+        } catch (error) {
+            console.error(`Error reading JSON file: ${error}`);
+            return [];
+        }
+
+        return promptLibrary
+    }
+
+    private async setUpHotkeys() {
+        const promptLibrary = await this.getPromptLibrary();
+        // Create a command for each prompt in the library
+        for (const entry of promptLibrary) {
+            this.addCommand({
+                id: this.generateCommandID(entry.Name),
+                name: `Prompt: ${entry.Name}`,
+                callback: () => this.performButtonClickActions(entry),
+            });
+        }
     }
 
     // Creates a new markdown file with the given content and a timestamp-based filename
