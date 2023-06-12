@@ -2,7 +2,7 @@
 	"name": "cyborg-duck",
 	"version": "1.0.0",
 	"description": "This is a plugin for cyborgism.",
-	"main": "main.js",
+	"main": "src/main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
@@ -25,6 +25,7 @@
 		"@pinecone-database/pinecone": "^0.1.5",
 		"gpt-tokenizer": "^2.0.0",
 		"js-tiktoken": "^1.0.6",
+		"marked": "^5.1.0",
 		"openai": "^3.2.1",
 		"tiktoken": "^1.0.7",
 		"tiktoken-node": "^0.0.6"
