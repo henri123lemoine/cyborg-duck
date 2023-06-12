@@ -1,11 +1,11 @@
 {
 	"id": "cyborg-duck",
 	"name": "Cyborg Duck",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "This is a cyborgism plugin for Obsidian.",
 	"author": "Cyborgism crowd",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }
