@@ -1,7 +1,7 @@
 // classes.ts
 
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import CyborgDuck from '../main';
+import CyborgDuck from './main';
 
 
 export const DEFAULT_SETTINGS: CyborgDuckSettings = {
