@@ -13,6 +13,7 @@
     color: #ddd;
     font-family: 'Helvetica', sans-serif;
     background-color: #222;
+    user-select: text;
 }
 
 .prompt-container,
@@ -22,6 +23,7 @@
     height: calc(50% - 5px); /* subtract half of the divider's height so the two halves are still equal */
     padding: 10px;
     box-shadow: 0px 0px 5px 0px rgba(255,255,255,0.1);
+    word-wrap: break-word;
 }
 
 .prompt-container h3,
@@ -72,10 +74,11 @@
 
 .button-container button {
     flex: 1;
-    margin: 0 10px; /* Optional: adds a little spacing between buttons */
+    margin: 0 10px;
+    transition-duration: 0.3s;
 }
 
-.prompt-container p,
-.completion-container p {
-    word-wrap: break-word;
+.button-container button:hover {
+    background-color: rgb(144, 85, 255); 
+    color: rgb(255, 255, 255);
 }
