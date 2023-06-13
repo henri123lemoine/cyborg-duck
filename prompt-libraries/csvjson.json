@@ -1,5 +1,27 @@
 [
   {
+    "Name": "Complete",
+    "Description": "Standard completion",
+    "Model name":"",
+    "Prompt":"{context}"
+  },
+  {
+    "Name": "Chat",
+    "Description": "Standard chat",
+    "Model name":"",
+    "Prompt": [
+      {"role": "user", "content": "{context}"}
+    ]
+  },
+  {
+    "Name": "Get Sources",
+    "Description": "Gets the top-k sources from the Alignment Research Dataset",
+    "Model name":"",
+    "Prompt": [
+      {"role": "user", "content": "{sources}"}
+    ]
+  },
+  {
     "Name": "Literary critique",
     "Description": "Literary critique makes comment about her friend’s alignment post",
     "Model name": "code-davinci-002",
