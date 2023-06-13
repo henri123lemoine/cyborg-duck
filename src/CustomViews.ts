@@ -54,17 +54,43 @@ export class CyborgDuckView extends ItemView {
     // Initialize the Completion section
     createCompletionSection(): void {
         const completionContainer = this.container.createEl('div', { cls: 'completion-container' });
+
+        // Initialize the Completion Title and Text
         completionContainer.createEl('h3', { text: 'Completion', cls: 'completion-title' });
         this.completionText = completionContainer.createEl('p', { text: '', cls: 'completion-text' });
-        const completeButton = this.createButton('Call Complete', this.completeHandler.bind(this));  // Using bind to retain 'this' context
-        completionContainer.appendChild(completeButton);
+
+        // Call Complete button
+        const completeButton = this.createButton('Call Complete', this.completeHandler.bind(this));
+
+        // Set cursor to copy on hover over completionText
+        this.completionText.style.cursor = 'copy';
+        
+        // Add event listener to completionText for copying
+        this.completionText.addEventListener('click', this.copyCompletionHandler.bind(this));
+
+        // Append buttons to the container
+        completionContainer.appendChild(this.createButtons([completeButton]));
+    }
+        
+    copyCompletionHandler(): void {
+        navigator.clipboard.writeText(this.completionText.textContent || '');
+        
+        // Add animation: simple scale and fade out/in
+        this.completionText.animate([
+            // keyframes
+            { transform: 'scale(1)', opacity: 1 }, 
+            { transform: 'scale(1.05)', opacity: 0.5 },
+            { transform: 'scale(1)', opacity: 2 }
+        ], { 
+            // timing options
+            duration: 400
+        });
     }
     
     // Handle complete button click
     async completeHandler(): Promise<void> {
         try {
-            const completion = await this.plugin.getOpenAICompletion(this.promptText.textContent || '');
-            this.completionText.textContent = completion;
+            await this.plugin.streamOpenAICompletion(this.promptText.textContent || '');
         } catch (error) {
             console.error("Failed to get completion: ", error);
         }
@@ -121,5 +147,10 @@ export class CyborgDuckView extends ItemView {
     setContent(prompt: PromptData, completion: string) {
         this.promptText.innerHTML = JSON.stringify(prompt);
         this.completionText.innerHTML = completion;
+    }
+
+    appendCompletionText(completion: string) {
+        const sanitizedText = this.sanitizeHtml(completion);
+        this.completionText.innerHTML += sanitizedText;
     }
 }
