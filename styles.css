@@ -71,6 +71,10 @@
     opacity: 0.5;
 }
 
+.completion-text:hover {
+    cursor: copy;
+}
+
 .divider {
     height: 10px;
     background-color: #333;
@@ -150,7 +154,7 @@
 }
 
 .add-message-button {
-    align-self: center; /* Aligns the button to the center */
+    align-self: center;
 }
 
 .remove-message-button {
