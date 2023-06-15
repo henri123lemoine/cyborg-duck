@@ -113,7 +113,7 @@ export default class CyborgDuck extends Plugin {
         this.commandManager = new CommandManager(this.app, this);
         this.buttonManager = new ButtonManager(this.app, this, this.commandManager);
         this.promptLibraryManager = new PromptLibraryManager(this.app, this, this.commandManager);
-        
+
         // Set up hotkeys
         await this.setUpHotkeys();
 

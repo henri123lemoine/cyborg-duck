@@ -2,23 +2,29 @@
   {
     "Name": "Complete",
     "Description": "Standard completion",
-    "Model name":"",
-    "Prompt":"{context}"
+    "Model name": "",
+    "Prompt": "{context}"
   },
   {
     "Name": "Chat",
     "Description": "Standard chat",
-    "Model name":"",
+    "Model name": "",
     "Prompt": [
-      {"role": "user", "content": "{context}"}
+      {
+        "role": "user",
+        "content": "{context}"
+      }
     ]
   },
   {
     "Name": "Get Sources",
     "Description": "Gets the top-k sources from the Alignment Research Dataset",
-    "Model name":"",
+    "Model name": "",
     "Prompt": [
-      {"role": "user", "content": "{sources}"}
+      {
+        "role": "user",
+        "content": "{sources}"
+      }
     ]
   },
   {
@@ -34,9 +40,15 @@
     "Model type": "CHAT",
     "Origin (Tweet / Reddit / Post / ...)": "",
     "Prompt": [
-      {"role": "system", "content": "You are a knowledgeable rubber-duck assistant, capable of context-driven reasoning and informed by specific sources."},
-      {"role": "user", "content": "Below you will find a selection of sources from the Alignment Research Dataset, followed by a user-written text. Your task is to digest the provided sources and use them to generate thoughtful questions about the user's text. These questions should aim to stimulate further thinking, correct any misconceptions, and preemptively answer queries that a reader might have while reading.\n\n{sources}\n\nText:\n---\n{context}\n---\n\nPlease generate 5 informed, relevant, and thought-provoking questions based on this context. Cite any specific information drawn from the sources in your questions using the format: [a], [b], etc. If you use multiple sources to inform a question, cite all of them."}
-    ]    
+      {
+        "role": "system",
+        "content": "You are a knowledgeable rubber-duck assistant, capable of context-driven reasoning and informed by specific sources."
+      },
+      {
+        "role": "user",
+        "content": "Below you will find a selection of sources from the Alignment Research Dataset, followed by a user-written text. Your task is to digest the provided sources and use them to generate thoughtful questions about the user's text. These questions should aim to stimulate further thinking, correct any misconceptions, and preemptively answer queries that a reader might have while reading.\n\n{sources}\n\nText:\n---\n{context}\n---\n\nPlease generate 5 informed, relevant, and thought-provoking questions based on this context. Cite any specific information drawn from the sources in your questions using the format: [a], [b], etc. If you use multiple sources to inform a question, cite all of them."
+      }
+    ]
   },
   {
     "Name": "Curious commenter",
@@ -74,50 +86,59 @@
     "Tags": "Rubber duck"
   },
   {
-    "Name": "Yudkowsky questions and critiques", 
-    "Description": "Eliezer Yudkowsky reads an alignment post and asks 3 questions.", 
-    "Model name": "code-davinci-002", 
+    "Name": "Yudkowsky questions and critiques",
+    "Description": "Eliezer Yudkowsky reads an alignment post and asks 3 questions.",
+    "Model name": "code-davinci-002",
     "Prompt": "Eliezer Yudkowsky, a brilliant but very critical Alignment researcher, sat hunched over his computer, his fingers poised over the keyboard as his eyes scanned the screen. He had been eagerly awaiting his colleague’s post on the newest breakthrough in AI safety, hoping it would spark a productive conversation among their peers.\nFinally, the email notification popped up, and with a quick click, Eliezer dove into the post. The excerpt read:\n\"\"\"\n{context}\n\"\"\"\nHe read through the post carefully at first, his mind racing with questions and concerns. He decided to type his thoughts concisely in the form of 3 questions, by crafting each sentence to ensure clarity and precision:"
-  }, 
+  },
   {
-    "Name": "tl;dr", 
-    "Description": "sometimes summarizes, sometimes produces more interesting things", 
-    "Model name": "code-davinci-002", 
+    "Name": "tl;dr",
+    "Description": "sometimes summarizes, sometimes produces more interesting things",
+    "Model name": "code-davinci-002",
     "Prompt": "{context}\n\ntl;dr: "
-  }, 
+  },
   {
-    "Name": "Chat tl;dr", 
-    "Description": "sometimes summarizes, sometimes produces more interesting things", 
-    "Model name": "code-davinci-002", 
+    "Name": "Chat tl;dr",
+    "Description": "sometimes summarizes, sometimes produces more interesting things",
+    "Model name": "code-davinci-002",
     "Prompt": [
-      {"role": "system", "content": "You are a summarizer assistant. You give detailed and concise summaries of the user-given text."}, 
-      {"role": "user", "content": "{context}\n\nProvide a summary of the above text."}
+      {
+        "role": "system",
+        "content": "You are a summarizer assistant. You give detailed and concise summaries of the user-given text."
+      },
+      {
+        "role": "user",
+        "content": "{context}\n\nProvide a summary of the above text."
+      }
     ]
-  }, 
+  },
   {
-    "Name": "Modified PICT", 
-    "Description": "Provides questions from a graduate student Persona", 
-    "Model name": "code-davinci-002", 
+    "Name": "Modified PICT",
+    "Description": "Provides questions from a graduate student Persona",
+    "Model name": "code-davinci-002",
     "Prompt": "Text:\n\"\"\"{context}\"\"\"\n\nContext: You are a graduate student studying logic and arguments. You are provided with the text above. Your goal is to find penetrating questions which cause the speaker to examine their premises more rigorously.\nQuestions:"
   },
   {
-    "Name": "Chat Modified PICT", 
-    "Description": "Provides questions from a graduate student Persona", 
-    "Model name": "code-davinci-002", 
+    "Name": "Chat Modified PICT",
+    "Description": "Provides questions from a graduate student Persona",
+    "Model name": "code-davinci-002",
     "Prompt": [
-      {"role": "user", "content": "Text:\n\"\"\"{context}\"\"\"\n\nContext: You are a graduate student studying logic and arguments. You are provided with the text above. Your goal is to find penetrating questions which cause the speaker to examine their premises more rigorously.\nQuestions:"}
+      {
+        "role": "user",
+        "content": "Text:\n\"\"\"{context}\"\"\"\n\nContext: You are a graduate student studying logic and arguments. You are provided with the text above. Your goal is to find penetrating questions which cause the speaker to examine their premises more rigorously.\nQuestions:"
+      }
     ]
   },
   {
-    "Name": "Socrates", 
-    "Description": "Socratic dialogue mode", 
-    "Model name": "", 
+    "Name": "Socrates",
+    "Description": "Socratic dialogue mode",
+    "Model name": "",
     "Prompt": "Protagoras: \"{context}\"\n\nSocrates:"
   },
   {
-    "Name": "Reflective Stephen", 
-    "Description": "Response with semi-fictional context", 
-    "Model name": "code-davinci-002", 
+    "Name": "Reflective Stephen",
+    "Description": "Response with semi-fictional context",
+    "Model name": "code-davinci-002",
     "Prompt": "Argument: {context}\n\n\nStephen felt there was something off about this argument. He had some questions. He asked"
   },
   {
@@ -127,21 +148,122 @@
     "Prompt": "\"{context}\"\nWrite 2-3 sentences about the assumptions this author has made. What questions would you ask them to make them clarify these?"
   },
   {
-    "Name": "Stephen and Frank", 
-    "Description": "Frank’s argument gets better", 
-    "Model name": "code-davinci-002", 
+    "Name": "Stephen and Frank",
+    "Description": "Frank’s argument gets better",
+    "Model name": "code-davinci-002",
     "Prompt": "\"{context}\"\nStephen didn’t think this argument was very good. But then Frank continued and Stephen began to think a little differently. Frank said"
   },
   {
     "Name": "Hazlitt",
     "Description": "GPT-invented prompt",
-    "Model name":"",
-    "Prompt":"Text: \"\"\"\n{context}\n\"\"\"\n\nWilliam Hazlitt: This paragraph could be improved significantly in its style. You have some good ideas, but they are buried in a sea of unnecessary words. I would recommend cutting this paragraph down to its essentials and rewriting it in a more concise way, as such:"
+    "Model name": "",
+    "Prompt": "Text: \"\"\"\n{context}\n\"\"\"\n\nWilliam Hazlitt: This paragraph could be improved significantly in its style. You have some good ideas, but they are buried in a sea of unnecessary words. I would recommend cutting this paragraph down to its essentials and rewriting it in a more concise way, as such:"
   },
   {
     "Name": "Einstein and Bruce",
     "Description": "Conversation between wayne and einstein. could be useful to judge scientific validity",
     "Model name": "code-davinci-002",
     "Prompt": "Albert Einstein was strolling through the aisles of his favorite bookstore when he spotted a familiar figure browsing through the science section. It was none other than Bruce Wayne, the wealthy philanthropist and owner of Wayne Enterprises. Einstein couldn’t help but feel a sense of curiosity about this man, who was clearly interested in science but also had a reputation as a playboy.\nAs Einstein approached, Wayne looked up from the book he was perusing and met the scientist’s gaze. For a moment, they stood there in silence, sizing each other up.\n\"Mr. Wayne, it’s a pleasure to meet you,\" Einstein said, extending his hand.\n\"The pleasure is all mine, Dr. Einstein,\" Wayne replied, taking the scientist’s hand and giving it a firm shake.\nAs they continued to chat, Einstein couldn’t help but be impressed by Wayne’s knowledge of science and his passion for discovery. Despite his reputation as a playboy, there was clearly more to this man than met the eye.\n\"Have you read this book?\" Wayne asked, holding up a volume on theoretical physics.\nEinstein took the book and examined it closely. \"Ah, yes. It’s a classic,\" he said with a smile.\n\"I’m trying to broaden my horizons,\" Wayne said, returning the smile. \"Science has always fascinated me, but I never had the opportunity to study it in depth.\"\n\"Well, I’m always happy to chat about science with a fellow enthusiast,\" Einstein said, returning the book to Wayne. \"Perhaps we could continue this conversation over a cup of coffee?\"\nWayne nodded eagerly. \"I know just the place.\"\nAs they settled in at a nearby café, Wayne brought up a point that he had read in the book they had been discussing.\n\"I found this argument to be particularly interesting,\" Wayne said, pointing to a paragraph in the book. \"But I’m not sure if it’s scientifically valid. What do you think, Dr. Einstein?\"\n\n\"\"\"\n{context}\n\n\"\"\"\n \nEinstein peered at the paragraph and rubbed his chin thoughtfully. \"It’s an intriguing argument, but I think it overlooks a key factor in the equation.\"\nThey launched into a spirited discussion, with Wayne presenting his viewpoint and Einstein offering counterpoints and additional evidence. The other patrons of the café listened in awe as the two brilliant minds engaged in a friendly debate.\n\nBruce asked Einstein, \"What flaw do you see in the argument?\".\n\nEinstein replied,"
+  },
+  {
+    "Name": "this is a test",
+    "Author": "Henri",
+    "Description": "please work",
+    "Model type": "BASE",
+    "Prompt": "this is the test prompt"
+  },
+  {
+    "Name": "wejoiwej",
+    "Author": "",
+    "Description": "wef",
+    "Model type": "CHAT",
+    "Prompt": [
+      {
+        "role": "user",
+        "content": "wefwef"
+      }
+    ]
+  },
+  {
+    "Name": "Cyborg Duck",
+    "Author": "Henri",
+    "Description": "This prompt is really cool trust me (nope it's just a test).",
+    "Model type": "CHAT",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "You are a cool prompt."
+      },
+      {
+        "role": "user",
+        "content": "I need you to say a funny joke based on the following context:\n\"\"\"\n{context}\n\"\"\""
+      }
+    ]
+  },
+  {
+    "Name": "test",
+    "Author": "henri",
+    "Description": "test",
+    "Model type": "BASE",
+    "Prompt": "test"
+  },
+  {
+    "Name": "this is a test",
+    "Author": "henri",
+    "Description": "test",
+    "Model type": "BASE",
+    "Prompt": "test"
+  },
+  {
+    "Name": "New Prompt",
+    "Author": "Henri",
+    "Description": "This is a new prompt.",
+    "Model type": "CHAT",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "You are the best chatbot."
+      },
+      {
+        "role": "user",
+        "content": "Hey!"
+      },
+      {
+        "role": "assistant",
+        "content": "Hi. I am the best chatbot."
+      }
+    ]
+  },
+  {
+    "Name": "Test Prompt",
+    "Author": "Henri",
+    "Description": "This promopt is a test",
+    "Model type": "CHAT",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "You are a duck."
+      },
+      {
+        "role": "user",
+        "content": "Here are sources from the ARD:\n\n{sources}\n\nThis is an excerpt:\n{context}\n\nWhat would be interesting questions to ask about this excerpt, informed by the ARD sources."
+      }
+    ]
+  },
+  {
+    "Name": "Test Prompt",
+    "Author": "Henri",
+    "Description": "This promopt is a test",
+    "Model type": "CHAT",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "You are a duck."
+      },
+      {
+        "role": "user",
+        "content": "Here are sources from the ARD:\n\n{sources}\n\nThis is an excerpt:\n{context}\n\nWhat would be interesting questions to ask about this excerpt, informed by the ARD sources."
+      }
+    ]
   }
 ]
