@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: CyborgDuckSettings = {
     topK: 5,
     openaiBaseEngineId: 'code-davinci-002',
     openaiChatEngineId: 'gpt-3.5-turbo',
-    promptLibraryPath: '',
+    promptLibraryPath: 'prompt-libraries/prompt-library.json',
     usePinecone: false,
     githubPAT: ''
 }

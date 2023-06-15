@@ -10,8 +10,9 @@ import CyborgDuckPlugin from './main';
 
 const OWNER = 'henri123lemoine'; // The username of the repository owner
 const REPO = 'cyborg-duck'; // The name of the repository
-const BRANCH = 'main'; // The name of the branch to commit to
-const FILE_PATH = 'prompt-libraries/csvjson.json'; // The path to the file in your GitHub repository
+// const BRANCH = 'main'; // The name of the branch to commit to
+const BRANCH = 'update-library'; // The name of the branch to commit to
+const FILE_PATH = 'prompt-libraries\/prompt-library.json'; // The path to the file in your GitHub repository
 
 export interface Entry {
     Name: string;
@@ -186,7 +187,9 @@ export class PromptLibraryManager {
             const content = decodeBase64(currentContent.data.content);
     
             // Define the path to the local file
-            const localFilePath = this.promptLibraryPath.replace("csvjson.json", "csvjson_test.json");
+            console.log('Prompt library path:', this.promptLibraryPath);
+            const localFilePath = this.promptLibraryPath.replace(".json", "local.json");
+            console.log('Prompt library path:', this.promptLibraryPath);
     
             // Write the content to the local file
             await fs.writeFile(localFilePath, content, 'utf8');
