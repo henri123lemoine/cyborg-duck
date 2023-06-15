@@ -84,17 +84,58 @@ export class PromptLibraryManager {
         try {
             // Fetch and update the content
             const updatedContent = await this.fetchAndUpdateContent(octokit, entry);
-            console.log('Updated content:', updatedContent);
+    
+            // Get the sha of the current content
+            const currentContent = await octokit.rest.repos.getContent({
+                owner: OWNER,
+                repo: REPO,
+                path: FILE_PATH,
+                ref: BRANCH,
+            }) as GitHubContentResponse;
+            const sha = currentContent.data.sha;
+    
+            // Push the updated content to GitHub
+            const response = await octokit.rest.repos.createOrUpdateFileContents({
+                owner: OWNER,
+                repo: REPO,
+                path: FILE_PATH,
+                branch: BRANCH,
+                message: `Added prompt ${entry.Name}`,
+                content: updatedContent,
+                sha: sha,
+            });
+            console.log('Pushed to GitHub:', response);
     
             // Create a gist with the updated content
             const gistUrl = await this.createGist(octokit, updatedContent);
             console.log('Created gist:', gistUrl);
             
             // Create the issue
-            await this.createIssue(octokit, entry, gistUrl);
+            const issueResponse = await octokit.rest.issues.create({
+                owner: OWNER,
+                repo: REPO,
+                title: `[Library] Added prompt ${entry.Name}`,
+                body: `A new prompt named \"${entry.Name}\" was added. See the changes in the attached file: ${gistUrl}`,
+            });
             
-            new Notice(`Successfully added ${entry.Name} to the prompt library.`);
-            console.log('Created issue');
+            new Notice(`Successfully created an issue for ${entry.Name}.`);
+            console.log('Created issue:', issueResponse);
+    
+            // Get the issue number from the issue response
+            const issueNumber = issueResponse.data.number;
+    
+            // Create the pull request and link it to the issue
+            await octokit.rest.pulls.create({
+                owner: OWNER,
+                repo: REPO,
+                title: `[Library] Added prompt ${entry.Name}`,
+                head: BRANCH,
+                base: BRANCH,
+                body: `A new prompt named \"${entry.Name}\" was added. See the changes in the attached file: ${gistUrl}\n\nFixes #${issueNumber}`, // Use a keyword followed by # and the issue number to link them
+            });
+            
+            new Notice(`Successfully created a pull request for ${entry.Name}.`);
+            console.log('Created pull request');
         } catch (error) {
             console.error('Failed to update GitHub:', error);
             new Notice(`Failed to update GitHub: ${error.message}`);
@@ -120,15 +161,6 @@ export class PromptLibraryManager {
         return encodeBase64(JSON.stringify(currentContentParsed, null, 2));
     }
     
-    async createIssue(octokit: Octokit, entry: Entry, gistUrl: string) {
-        await octokit.rest.issues.create({
-            owner: OWNER,
-            repo: REPO,
-            title: `[Library] Added prompt ${entry.Name}`,
-            body: `A new prompt named \"${entry.Name}\" was added. See the changes in the attached file: ${gistUrl}`,
-        });
-    }
-
     async createGist(octokit: Octokit, content: string): Promise<string> {
         const gist = await octokit.rest.gists.create({
             files: {
