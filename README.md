@@ -53,7 +53,8 @@ Each prompt library is a list of prompts, each having a 'Name' and a 'Prompt', w
 
 ## Usage
 
-Once installed and configured, activate the PromptSelect ribbon button to open a menu displaying all valid prompts for the current note. Choosing a prompt will generate a completion based on the selected prompt from the library in a note on the right. For convenient access to regularly used prompts, assign hotkeys to them in the Obsidian hotkey settings. Press the PromptSelect ribbon again to remove the menu.
+Plugin showcase:
+[![Watch the plugin showcase](https://imgur.com/TQvM6KT)](https://youtu.be/xoT7lXjKkOQ)
 
 ## TODO
 
