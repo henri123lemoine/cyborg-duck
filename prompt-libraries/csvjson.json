@@ -286,5 +286,21 @@
     "Description": "test",
     "Model type": "BASE",
     "Prompt": "tsest"
+  },
+  {
+    "Name": "testtt",
+    "Author": "",
+    "Description": "testtt",
+    "Model type": "CHAT",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "testtt"
+      },
+      {
+        "role": "user",
+        "content": "{context}"
+      }
+    ]
   }
 ]
