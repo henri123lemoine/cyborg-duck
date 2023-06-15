@@ -9,7 +9,7 @@ import { getEncoding } from "js-tiktoken";
 
 import { DEFAULT_SETTINGS, CyborgDuckSettings, CyborgDuckSettingTab } from './SettingsHelper';
 import { CommandManager } from './CommandManager';
-import { Entry } from './LibraryHelper';
+import { Entry, PromptLibraryManager } from './LibraryHelper';
 import { CyborgDuckView, CYBORG_DUCK_VIEW_TYPE } from "./CustomViews";
 import { ReadableStreamDefaultReadResult } from 'web-streams-polyfill';
 
@@ -86,6 +86,7 @@ export default class CyborgDuck extends Plugin {
     openai: OpenAIApi;
     commandManager: CommandManager;
     buttonManager: ButtonManager;
+    promptLibraryManager: PromptLibraryManager;
 
     // Use a variable to track if buttons are displayed
     buttonsDisplayed: boolean = false;
@@ -108,10 +109,11 @@ export default class CyborgDuck extends Plugin {
         });
         this.openai = new OpenAIApi(configuration);
 
-        // Set up command and button managers
+        // Set up command, button, and prompt library managers
         this.commandManager = new CommandManager(this.app, this);
         this.buttonManager = new ButtonManager(this.app, this, this.commandManager);
-
+        this.promptLibraryManager = new PromptLibraryManager(this.app, this, this.commandManager);
+        
         // Set up hotkeys
         await this.setUpHotkeys();
 
@@ -270,7 +272,9 @@ export default class CyborgDuck extends Plugin {
         const semanticSearchButton = this.buttonManager.createButton('Get ARD Relevant Context', () => this.displaySemanticSearch());
         buttonsDiv.appendChild(semanticSearchButton);     
         
-        // 2. Etc
+        // 2. Add Prompt to the Prompt Library using the cyborgDuckView
+        const addPromptButton = this.buttonManager.createButton('Add Prompt to Library', () => this.cyborgDuckView.addPromptToLibrary());
+        buttonsDiv.appendChild(addPromptButton);
         
         markdownView.containerEl.parentElement?.appendChild(buttonsDiv);
     }
@@ -540,13 +544,13 @@ export default class CyborgDuck extends Plugin {
                     json = JSON.parse(event.slice(6));
                 } catch (e) {
                     console.log('Failed to parse event: ', event);
+                    console.log('Completion', this.cyborgDuckView.completionText.textContent);
                     continue;
                 }
     
                 // Extract the completion from the JSON.
                 if (json.choices && json.choices[0] && json.choices[0].text) {
                     const completion = json.choices[0].text;
-                    console.log(completion);
                     this.cyborgDuckView.appendCompletionText(completion);
                 }
             }

@@ -19,7 +19,6 @@ export class CommandManager {
                 // new Notice('Cyborg Duck: Please open a note to use this plugin.');
             }
         });
-
     }
 
     // Removing the layout change listener when the plugin is unloaded
