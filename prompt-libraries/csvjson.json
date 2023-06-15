@@ -272,5 +272,12 @@
     "Description": "test with new code",
     "Model type": "BASE",
     "Prompt": "test with new code"
+  },
+  {
+    "Name": "test #6",
+    "Author": "",
+    "Description": "test",
+    "Model type": "BASE",
+    "Prompt": "test"
   }
 ]
