@@ -161,6 +161,41 @@ export class PromptLibraryManager {
         // Convert the updated content back to base64
         return encodeBase64(JSON.stringify(currentContentParsed, null, 2));
     }
+
+    async fetchAndSaveLibrary() {
+        if (!this.plugin.settings.githubPAT) {
+            console.error('GitHub Personal Access Token not set. Please set it in the settings and try again.', 5000);
+            return;
+        }
+    
+        const octokit = new Octokit({
+            auth: this.plugin.settings.githubPAT, 
+            userAgent: 'CyborgDuckPlugin',
+        });
+    
+        try {
+            // Read the current content of the file from your Github repository
+            const currentContent = await octokit.rest.repos.getContent({
+                owner: OWNER,
+                repo: REPO,
+                path: FILE_PATH,
+                ref: BRANCH,
+            }) as GitHubContentResponse;
+            
+            // Decode the base64 content
+            const content = decodeBase64(currentContent.data.content);
+    
+            // Define the path to the local file
+            const localFilePath = this.promptLibraryPath.replace("csvjson.json", "csvjson_test.json");
+    
+            // Write the content to the local file
+            await fs.writeFile(localFilePath, content, 'utf8');
+    
+            console.log(`Successfully fetched library and saved as ${localFilePath}`);
+        } catch (error) {
+            console.error('Failed to fetch library:', error);
+        }
+    }
     
     async createGist(octokit: Octokit, content: string): Promise<string> {
         const gist = await octokit.rest.gists.create({

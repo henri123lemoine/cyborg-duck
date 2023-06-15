@@ -1,0 +1,168 @@
+[
+  {
+    "Name": "Complete",
+    "Description": "Standard completion",
+    "Model name": "",
+    "Prompt": "{context}"
+  },
+  {
+    "Name": "Chat",
+    "Description": "Standard chat",
+    "Model name": "",
+    "Prompt": [
+      {
+        "role": "user",
+        "content": "{context}"
+      }
+    ]
+  },
+  {
+    "Name": "Get Sources",
+    "Description": "Gets the top-k sources from the Alignment Research Dataset",
+    "Model name": "",
+    "Prompt": [
+      {
+        "role": "user",
+        "content": "{sources}"
+      }
+    ]
+  },
+  {
+    "Name": "Literary critique",
+    "Description": "Literary critique makes comment about her friend’s alignment post",
+    "Model name": "code-davinci-002",
+    "Prompt": "Title: A Critical Exchange\nScene: A cozy study room, lined with bookshelves containing old and new works. In the center of the room, a wooden desk sits beneath a large window, providing ample natural light. A comfortable armchair sits adjacent to the desk, with a small table beside it, holding a cup of tea and a plate of biscuits.\nCharacters:\nEvelyn: A literary critique, known for her sharp wit and incisive questions.\nCharles: A friend of Evelyn, who has recently written a post about AI Alignment.\n(Evelyn sits in the armchair, sipping her tea, as she reads Charles' post on AI Alignment. The excerpt reads,\n\"\"\"\n{context}\n\"\"\"\nAs she finishes reading, she places the document on the table and takes a moment to process her thoughts.)\nEvelyn: (muttering to herself) Hmm... this certainly has merit, but it could use some refining. (She takes a sip of her tea and sets it down, rising from the armchair.)\n(Charles enters the room, looking somewhat nervous.)\nCharles: Well, Evelyn, what did you think?\nEvelyn: (smiling) Charles, your post on AI Alignment makes some important points, but I have a multitude of questions that I believe will help clarify some claims and sharpen the argumentation.\nCharles: (visibly relieved) Of course, I welcome your feedback. Go on.\nEvelyn: (takes a deep breath) First and foremost, what"
+  },
+  {
+    "Name": "Informed Rubber Duck",
+    "Description": "Rubber duck questions using ARD context and a chat model",
+    "Model name": "gpt-4",
+    "Model type": "CHAT",
+    "Origin (Tweet / Reddit / Post / ...)": "",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "You are a knowledgeable rubber-duck assistant, capable of context-driven reasoning and informed by specific sources."
+      },
+      {
+        "role": "user",
+        "content": "Below you will find a selection of sources from the Alignment Research Dataset, followed by a user-written text. Your task is to digest the provided sources and use them to generate thoughtful questions about the user's text. These questions should aim to stimulate further thinking, correct any misconceptions, and preemptively answer queries that a reader might have while reading.\n\n{sources}\n\nText:\n---\n{context}\n---\n\nPlease generate 5 informed, relevant, and thought-provoking questions based on this context. Cite any specific information drawn from the sources in your questions using the format: [a], [b], etc. If you use multiple sources to inform a question, cite all of them."
+      }
+    ]
+  },
+  {
+    "Name": "Curious commenter",
+    "Description": "Reddit format of commenter with username and tags and ~karma, with little preamble.",
+    "Model name": "code-davinci-002",
+    "Prompt": "Text:\n\"\"\"\n{context}\n\"\"\"\n\n\n## Questions By Curious Users!\n[+] Curi0usEnchanter +281 points | pinned post April 12, 2023\nWhat claims does the author make with regard to"
+  },
+  {
+    "Name": "Tony and Bruce disagree in shop",
+    "Description": "Chance encounter between genius inventor Tony Stark and brilliant detective Bruce Wayne in a shop. They go back and forth about a scroll they find about AI Alignment, with one asking questions and the other providing attempts at an answer.",
+    "Model name": "code-davinci-002",
+    "Prompt": "In a secluded corner of a dusty antique bookstore, two unsuspecting customers chanced upon an enigmatic treasure. Tony Stark, the genius inventor and businessman behind the Iron Man suit, and Bruce Wayne, the brilliant detective and strategist known as Batman, had found themselves in the same city for a tech conference. Seeking respite from the bustling crowds, they each ventured into the quiet bookstore, unaware of the other's presence.\nAs they both reached for the same leather-bound volume, their hands briefly touched, and they exchanged a knowing glance. Both men had developed a keen sense for recognizing the spark of genius in others, and they instantly knew that they shared a common bond.\n\"Quite an interesting find, don't you think?\" Bruce commented, his deep voice resonating through the hushed atmosphere.\n\"Indeed,\" Tony replied, his eyes already scanning the first few lines of the ancient text. \"It appears to be a long-lost manuscript containing secrets about aligning AI of a highly advanced civilization.\"\nBruce raised an eyebrow, intrigued by the prospect. They decided to collaborate and decipher the text, their shared curiosity and intellectual prowess driving them to uncover the secrets held within the fragile pages.\nIt ran as follows:\n\"\"\"\n{context}\n\"\"\"\nAs they delved deeper into the manuscript, they found themselves captivated by the intricacies and revelations laid before them. The advanced technology and scientific knowledge detailed within the text were far beyond anything they had encountered before. It soon became apparent that they were unraveling a mystery that would not only challenge their own understanding of the world but could also have profound implications for humanity.\nIn their pursuit of truth, the two titans of intellect found themselves engaged in a stimulating back and forth of questions and answers, each query probing deeper into the enigmatic knowledge contained within the ancient text.\nTony asked,"
+  },
+  {
+    "Name": "Hermione reads Daily Prophet",
+    "Author": "Henri",
+    "Description": "Produces the smart-Hermione simulacra that asks questions about a paper in the Daily Prophet",
+    "Image": "",
+    "Model name": "code-davinci-002",
+    "Model type": "BASE",
+    "Origin (Tweet / Reddit / Post / ...)": "",
+    "Prompt": "In the hallowed halls of Hogwarts Library, Hermione Granger's discerning eyes meticulously dissected the pages of the Daily Prophet, her brow furrowed with an intensity that only she, with her brilliant intellect, could manifest. Harry and Ron, captivated by her unwavering focus, felt compelled to approach their erudite friend.\n\"What treasure have you unearthed, Hermione?\" Harry inquired, his curiosity stirred by her demeanor.\nHermione raised her gaze from the article, her visage illuminated by the thrill of discovery and the tantalizing intricacies it revealed. \"You won't believe the fascinating revelation I've unveiled within this morning's paper!\" She beckoned her friends to sit beside her, eager to share the enthralling excerpt:\n\"\"\"\n{context}\n\"\"\"\nAs they perused the passage, Hermione's eyes danced nimbly over the text, absorbing every detail and nuance with the consummate skill of a master scholar. Upon completion, she met Harry's and Ron's eyes, her own ablaze with a fervent desire to unravel the enigmatic depths of the information.\n\"Most intriguing,\" she declared, her tone an admixture of contemplation and curiosity. \"However, I can't help but ponder upon three distinct questions that the author may not have considered. Firstly,\" she began, presenting a captivating inquiry, the contents of which were as distinct as the stars in the night sky. \"Secondly,\" she continued, seamlessly transitioning to an equally riveting question, yet one entirely disparate in substance. \"And lastly,\" she concluded, unveiling the third query, a veritable masterpiece of intellectual curiosity, distinct from the previous two, but equally mesmerizing in its intricacy.\nThe questions were as follows:"
+  },
+  {
+    "Name": "Sherlock reads newspaper",
+    "Description": "Produces a smart Sherlock Holmes simulacra that asks questions about any topic",
+    "Model name": "code-davinci-002",
+    "Prompt": "As I hastened towards him, the enigmatic figure of Sherlock Holmes pivoted with preternatural grace. His penetrating gaze, laden with curiosity, met mine as he inquired.\n\"What seems to have captured your enthusiasm, my dear Watson?\" His voice carried the familiar tone of intrigue.\n\"Ah, Holmes, you won't believe the astonishing revelation I encountered within the pages of the morning newspaper!\" I exclaimed, my excitement palpable. The brief excerpt I presented to my esteemed companion contained such intricate complexities that even his extraordinary intellect might be momentarily stumped. Sherlock was visibly captivated by the article as he prepared to immerse himself in the text:\n\"\"\"\n{context}\n\"\"\"\nAs Sherlock delved into the intricacies of the passage, his eyes danced with an agility that eclipsed the intellectual velocity of a mere mortal, each sentence unfurling its own distinct opulence. Upon completion, his gaze ascended to meet mine, unleashing a torrent of inquiries that swirled around me like an enigmatic tempest, each question an ornate tapestry disconnected from the last. Though the full essence of his questions eluded my comprehension, I was certain that they were the exquisite concoctions of an astoundingly luminescent mind, each query a resplendent gem in a dazzling array of cerebral brilliance.\n\"Fascinating,\" he declared, his tone a mixture of admiration and curiosity. \"However, I wonder if the author has pondered upon this particular conundrum:"
+  },
+  {
+    "Name": "Blog opinion",
+    "Description": "a blogger has some criticism",
+    "Model name": "",
+    "Prompt": "",
+    "Tags": "Rubber duck"
+  },
+  {
+    "Name": "Yudkowsky questions and critiques",
+    "Description": "Eliezer Yudkowsky reads an alignment post and asks 3 questions.",
+    "Model name": "code-davinci-002",
+    "Prompt": "Eliezer Yudkowsky, a brilliant but very critical Alignment researcher, sat hunched over his computer, his fingers poised over the keyboard as his eyes scanned the screen. He had been eagerly awaiting his colleague’s post on the newest breakthrough in AI safety, hoping it would spark a productive conversation among their peers.\nFinally, the email notification popped up, and with a quick click, Eliezer dove into the post. The excerpt read:\n\"\"\"\n{context}\n\"\"\"\nHe read through the post carefully at first, his mind racing with questions and concerns. He decided to type his thoughts concisely in the form of 3 questions, by crafting each sentence to ensure clarity and precision:"
+  },
+  {
+    "Name": "tl;dr",
+    "Description": "sometimes summarizes, sometimes produces more interesting things",
+    "Model name": "code-davinci-002",
+    "Prompt": "{context}\n\ntl;dr: "
+  },
+  {
+    "Name": "Chat tl;dr",
+    "Description": "sometimes summarizes, sometimes produces more interesting things",
+    "Model name": "code-davinci-002",
+    "Prompt": [
+      {
+        "role": "system",
+        "content": "You are a summarizer assistant. You give detailed and concise summaries of the user-given text."
+      },
+      {
+        "role": "user",
+        "content": "{context}\n\nProvide a summary of the above text."
+      }
+    ]
+  },
+  {
+    "Name": "Modified PICT",
+    "Description": "Provides questions from a graduate student Persona",
+    "Model name": "code-davinci-002",
+    "Prompt": "Text:\n\"\"\"{context}\"\"\"\n\nContext: You are a graduate student studying logic and arguments. You are provided with the text above. Your goal is to find penetrating questions which cause the speaker to examine their premises more rigorously.\nQuestions:"
+  },
+  {
+    "Name": "Chat Modified PICT",
+    "Description": "Provides questions from a graduate student Persona",
+    "Model name": "code-davinci-002",
+    "Prompt": [
+      {
+        "role": "user",
+        "content": "Text:\n\"\"\"{context}\"\"\"\n\nContext: You are a graduate student studying logic and arguments. You are provided with the text above. Your goal is to find penetrating questions which cause the speaker to examine their premises more rigorously.\nQuestions:"
+      }
+    ]
+  },
+  {
+    "Name": "Socrates",
+    "Description": "Socratic dialogue mode",
+    "Model name": "",
+    "Prompt": "Protagoras: \"{context}\"\n\nSocrates:"
+  },
+  {
+    "Name": "Reflective Stephen",
+    "Description": "Response with semi-fictional context",
+    "Model name": "code-davinci-002",
+    "Prompt": "Argument: {context}\n\n\nStephen felt there was something off about this argument. He had some questions. He asked"
+  },
+  {
+    "Name": "Reading Comprehension Questions",
+    "Description": "SAT style reading comprehension generator",
+    "Model name": "code-davinci-002",
+    "Prompt": "\"{context}\"\nWrite 2-3 sentences about the assumptions this author has made. What questions would you ask them to make them clarify these?"
+  },
+  {
+    "Name": "Stephen and Frank",
+    "Description": "Frank’s argument gets better",
+    "Model name": "code-davinci-002",
+    "Prompt": "\"{context}\"\nStephen didn’t think this argument was very good. But then Frank continued and Stephen began to think a little differently. Frank said"
+  },
+  {
+    "Name": "Hazlitt",
+    "Description": "GPT-invented prompt",
+    "Model name": "",
+    "Prompt": "Text: \"\"\"\n{context}\n\"\"\"\n\nWilliam Hazlitt: This paragraph could be improved significantly in its style. You have some good ideas, but they are buried in a sea of unnecessary words. I would recommend cutting this paragraph down to its essentials and rewriting it in a more concise way, as such:"
+  },
+  {
+    "Name": "Einstein and Bruce",
+    "Description": "Conversation between wayne and einstein. could be useful to judge scientific validity",
+    "Model name": "code-davinci-002",
+    "Prompt": "Albert Einstein was strolling through the aisles of his favorite bookstore when he spotted a familiar figure browsing through the science section. It was none other than Bruce Wayne, the wealthy philanthropist and owner of Wayne Enterprises. Einstein couldn’t help but feel a sense of curiosity about this man, who was clearly interested in science but also had a reputation as a playboy.\nAs Einstein approached, Wayne looked up from the book he was perusing and met the scientist’s gaze. For a moment, they stood there in silence, sizing each other up.\n\"Mr. Wayne, it’s a pleasure to meet you,\" Einstein said, extending his hand.\n\"The pleasure is all mine, Dr. Einstein,\" Wayne replied, taking the scientist’s hand and giving it a firm shake.\nAs they continued to chat, Einstein couldn’t help but be impressed by Wayne’s knowledge of science and his passion for discovery. Despite his reputation as a playboy, there was clearly more to this man than met the eye.\n\"Have you read this book?\" Wayne asked, holding up a volume on theoretical physics.\nEinstein took the book and examined it closely. \"Ah, yes. It’s a classic,\" he said with a smile.\n\"I’m trying to broaden my horizons,\" Wayne said, returning the smile. \"Science has always fascinated me, but I never had the opportunity to study it in depth.\"\n\"Well, I’m always happy to chat about science with a fellow enthusiast,\" Einstein said, returning the book to Wayne. \"Perhaps we could continue this conversation over a cup of coffee?\"\nWayne nodded eagerly. \"I know just the place.\"\nAs they settled in at a nearby café, Wayne brought up a point that he had read in the book they had been discussing.\n\"I found this argument to be particularly interesting,\" Wayne said, pointing to a paragraph in the book. \"But I’m not sure if it’s scientifically valid. What do you think, Dr. Einstein?\"\n\n\"\"\"\n{context}\n\n\"\"\"\n \nEinstein peered at the paragraph and rubbed his chin thoughtfully. \"It’s an intriguing argument, but I think it overlooks a key factor in the equation.\"\nThey launched into a spirited discussion, with Wayne presenting his viewpoint and Einstein offering counterpoints and additional evidence. The other patrons of the café listened in awe as the two brilliant minds engaged in a friendly debate.\n\nBruce asked Einstein, \"What flaw do you see in the argument?\".\n\nEinstein replied,"
+  }
+]

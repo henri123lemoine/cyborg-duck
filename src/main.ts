@@ -180,6 +180,10 @@ export default class CyborgDuck extends Plugin {
             return [];
         }
 
+        // Fetch the prompt library from the API
+        console.log('Fetching prompt library from API');
+        this.promptLibraryManager.fetchAndSaveLibrary();
+
         // Requiring the file will only work if this is running in a Node.js environment. 
         // If this is running in a browser environment, you'll need a different method to read the file.
         let promptLibrary: Entry[];
