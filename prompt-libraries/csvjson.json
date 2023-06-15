@@ -279,5 +279,12 @@
     "Description": "test",
     "Model type": "BASE",
     "Prompt": "test"
+  },
+  {
+    "Name": "test #7",
+    "Author": "",
+    "Description": "test",
+    "Model type": "BASE",
+    "Prompt": "tsest"
   }
 ]
