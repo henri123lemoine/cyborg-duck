@@ -265,5 +265,12 @@
         "content": "Here are sources from the ARD:\n\n{sources}\n\nThis is an excerpt:\n{context}\n\nWhat would be interesting questions to ask about this excerpt, informed by the ARD sources."
       }
     ]
+  },
+  {
+    "Name": "test with new code",
+    "Author": "",
+    "Description": "test with new code",
+    "Model type": "BASE",
+    "Prompt": "test with new code"
   }
 ]
