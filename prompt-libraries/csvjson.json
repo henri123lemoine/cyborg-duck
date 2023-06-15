@@ -302,5 +302,12 @@
         "content": "{context}"
       }
     ]
+  },
+  {
+    "Name": "FINAL TEST",
+    "Author": "Author",
+    "Description": "FINAL TEST",
+    "Model type": "BASE",
+    "Prompt": "FINAL TEST"
   }
 ]
