@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: CyborgDuckSettings = {
     openaiChatEngineId: 'gpt-3.5-turbo',
     promptLibraryPath: '',
     usePinecone: false,
+    githubPAT: ''
 }
 
 export interface CyborgDuckSettings {
@@ -24,6 +25,7 @@ export interface CyborgDuckSettings {
     openaiChatEngineId: 'gpt-4' | 'gpt-4-0314' | 'gpt-4-32k' | 'gpt-4-32k-0314' | 'gpt-3.5-turbo' | 'gpt-3.5-turbo-0301';
     promptLibraryPath: string;
     usePinecone: boolean;
+    githubPAT: string;
 }
 
 export class CyborgDuckSettingTab extends PluginSettingTab {
@@ -41,6 +43,18 @@ export class CyborgDuckSettingTab extends PluginSettingTab {
 
         containerEl.createEl('h1', { text: 'Cyborg Duck Settings' });
         
+        new Setting(containerEl)
+            .setName('GitHub Personal Access Token')
+            .setDesc('Your GitHub Personal Access Token (PAT). This is used to authenticate with GitHub. DO NOT SHARE THIS WITH ANYONE.')
+            .addText(text => text
+                .setPlaceholder('Enter your GitHub PAT')
+                .setValue(this.plugin.settings.githubPAT || '')
+                .onChange(async (value) => {
+                this.plugin.settings.githubPAT = value;
+                await this.plugin.saveSettings();
+                }));
+
+
         new Setting(containerEl)
             .setName('Prompt Library Path')
             .setDesc('Path to the JSON file containing chat prompts for OpenAI models.')

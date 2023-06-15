@@ -284,7 +284,7 @@ export class CyborgDuckView extends ItemView {
         messageContainer.appendChild(messageInput);
     }
     
-    submitHandler(): void {
+    async submitHandler(): Promise<void> {
         const nameContainer = this.addPromptViewContainer.querySelector<HTMLElement>('.name-input');
         const descriptionContainer = this.addPromptViewContainer.querySelector<HTMLElement>('.description-input');
         const modelTypeContainer = this.addPromptViewContainer.querySelector<HTMLElement>('.model-type-input');
@@ -357,7 +357,7 @@ export class CyborgDuckView extends ItemView {
             author: authorInput?.value
         };
     
-        this.plugin.promptLibraryManager.addPrompt(prompt);
+        await this.plugin.promptLibraryManager.addPrompt(prompt);
     
         this.cancelHandler();
     }
