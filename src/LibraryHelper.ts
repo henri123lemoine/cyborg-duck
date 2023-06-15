@@ -153,6 +153,7 @@ export class PromptLibraryManager {
     
         // Parse the current content of the file
         const currentContentParsed = JSON.parse(decodeBase64(currentContent.data.content));
+        console.log('Current content:', currentContentParsed);
     
         // Add the new entry to the content
         currentContentParsed.push(entry);
