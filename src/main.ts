@@ -2,13 +2,16 @@
 
 import * as fs from 'fs/promises';
 import { App, MarkdownView, Plugin, Notice, TFile, TFolder, Editor, requestUrl, WorkspaceLeaf } from 'obsidian';
+
 import { Configuration, OpenAIApi, ChatCompletionRequestMessage as Message } from "openai";
+
 import { getEncoding } from "js-tiktoken";
 
 import { DEFAULT_SETTINGS, CyborgDuckSettings, CyborgDuckSettingTab } from './SettingsHelper';
 import { CommandManager } from './CommandManager';
-import { Entry } from './LibraryHelper';
+import { Entry, PromptLibraryManager } from './LibraryHelper';
 import { CyborgDuckView, CYBORG_DUCK_VIEW_TYPE } from "./CustomViews";
+import { ReadableStreamDefaultReadResult } from 'web-streams-polyfill';
 
 
 // INTERFACES
@@ -83,6 +86,7 @@ export default class CyborgDuck extends Plugin {
     openai: OpenAIApi;
     commandManager: CommandManager;
     buttonManager: ButtonManager;
+    promptLibraryManager: PromptLibraryManager;
 
     // Use a variable to track if buttons are displayed
     buttonsDisplayed: boolean = false;
@@ -105,10 +109,11 @@ export default class CyborgDuck extends Plugin {
         });
         this.openai = new OpenAIApi(configuration);
 
-        // Set up command and button managers
+        // Set up command, button, and prompt library managers
         this.commandManager = new CommandManager(this.app, this);
         this.buttonManager = new ButtonManager(this.app, this, this.commandManager);
-
+        this.promptLibraryManager = new PromptLibraryManager(this.app, this, this.commandManager);
+        
         // Set up hotkeys
         await this.setUpHotkeys();
 
@@ -156,11 +161,6 @@ export default class CyborgDuck extends Plugin {
                 type: CYBORG_DUCK_VIEW_TYPE,
             });
         }
-    }
-    
-    doNothing() {
-        // does nothing for now
-        console.log('Doing nothing');
     }
     
     // Clean up any created elements upon plugin unload
@@ -272,7 +272,9 @@ export default class CyborgDuck extends Plugin {
         const semanticSearchButton = this.buttonManager.createButton('Get ARD Relevant Context', () => this.displaySemanticSearch());
         buttonsDiv.appendChild(semanticSearchButton);     
         
-        // 2. Etc
+        // 2. Add Prompt to the Prompt Library using the cyborgDuckView
+        const addPromptButton = this.buttonManager.createButton('Add Prompt to Library', () => this.cyborgDuckView.addPromptToLibrary());
+        buttonsDiv.appendChild(addPromptButton);
         
         markdownView.containerEl.parentElement?.appendChild(buttonsDiv);
     }
@@ -285,14 +287,16 @@ export default class CyborgDuck extends Plugin {
     async performButtonClickActions(entry: Entry) {
         const processedPromptData = await this.createPrompt(entry.Prompt);
         const formattedPromptData = this.formatPromptData(processedPromptData);
-
+    
         this.cyborgDuckView.setPromptText(formattedPromptData);
-
-        const completion = await this.getOpenAICompletion(processedPromptData);
-
-        this.cyborgDuckView.setCompletionText(completion);        
+    
+        try {
+            await this.streamOpenAICompletion(formattedPromptData);
+        } catch (error) {
+            console.error("Error with OpenAI completion", error);
+        }
     }
-
+    
     // Helper function to transform the processedPromptData into a string
     formatPromptData(promptData: PromptData): string {
         if (typeof promptData === 'string') {
@@ -423,35 +427,142 @@ export default class CyborgDuck extends Plugin {
 
     // START OF OPENAI SECTION //
 
-    // Makes a request to OpenAI's API, either a chat or text completion depending on the input data type
-    async getOpenAICompletion(data: string | Message[]): Promise<any> {
-        try {
-            const isBaseModel = typeof data === 'string';
-
-            console.log("isBaseModel", isBaseModel);
-            console.log("data", data);
-            
-            if (isBaseModel) {
-                const completion = await this.openai.createCompletion({
-                    model: 'davinci',
-                    prompt: data as string,
-                    // max_tokens: 100,
-                });
+    async getOpenAICompletion(data: PromptData): Promise<string> {
+        if (typeof data === 'string') {
+            const completion = await this.openai.createCompletion({
+                model: this.settings.openaiBaseEngineId,
+                prompt: data,
+                max_tokens: 60,
+                temperature: 0.6,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+                stream: false
+            });
+    
+            // Check for undefined values
+            if(completion.data.choices && completion.data.choices[0] && completion.data.choices[0].text) {
                 return completion.data.choices[0].text;
-            } else {
-                const completion = await this.openai.createChatCompletion({
-                    model: 'gpt-3.5-turbo',
-                    messages: data,
-                });
-                return completion.data.choices[0].message?.content;
             }
-        } catch (error) {
-            console.error("Error fetching response from OpenAI:", error);
-            throw error;
+            else {
+                throw new Error("Unexpected API response structure");
+            }
+        } else if (Array.isArray(data)) {
+            const completion = await this.openai.createChatCompletion({
+                model: this.settings.openaiChatEngineId,
+                messages: data
+            });
+    
+            // Check for undefined values and access the message property (might need to adjust based on OpenAI API spec)
+            if(completion.data.choices && completion.data.choices[0] && completion.data.choices[0].message) {
+                return completion.data.choices[0].message.content; 
+            }
+            else {
+                throw new Error("Unexpected API response structure");
+            }
+        } else {
+            throw new Error("Invalid type for data");
         }
     }
 
+    async streamOpenAICompletion(prompt: PromptData): Promise<void> {
+        const url = 'https://api.openai.com/v1/completions';
+        const headers = {
+            'Authorization': `Bearer ${this.settings.openaiApiKey}`,
+            'Content-Type': 'application/json',
+        };
+        
+        let body: string;
+        let model: string;
+    
+        if (typeof prompt === 'string') {
+            model = this.settings.openaiBaseEngineId;
+            body = JSON.stringify({
+                model: model,
+                prompt: prompt,
+                max_tokens: 60,
+                temperature: 0.6,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+                stream: true,
+            });
+        } else if (Array.isArray(prompt)) {
+            model = this.settings.openaiChatEngineId;
+            body = JSON.stringify({
+                model: model,
+                messages: prompt,
+                stream: true,
+            });
+        } else {
+            throw new Error("Invalid type for prompt");
+        }
+    
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: body,
+        });
+    
+        if (!response.ok) {
+            throw new Error("API request failed");
+        }
 
+        if (!response.body) {
+            throw new Error("API response body is undefined");
+        }
+    
+        const reader = response.body.getReader();
+        let decoder = new TextDecoder();
+        let data = '';
+        this.cyborgDuckView.completionText.textContent = '';
+
+        const processChunk = async (chunk: ReadableStreamDefaultReadResult<Uint8Array>): Promise<void> => {
+            if (chunk.done) {
+                // The stream has ended.
+                return;
+            }
+    
+            // Add the new data to what we have already.
+            data += decoder.decode(chunk.value, { stream: true });
+    
+            // Process all complete events in the data string.
+            let separator;
+            while ((separator = data.indexOf('\n\n')) !== -1) {
+                // Extract the next complete event from the data string.
+                const event = data.slice(0, separator);
+    
+                // Remove the event from the data string.
+                data = data.slice(separator + 2);
+    
+                if (!event.startsWith('data: ')) {
+                    // This is not a data event, ignore it.
+                    continue;
+                }
+    
+                // Parse the event data as JSON.
+                let json;
+                try {
+                    json = JSON.parse(event.slice(6));
+                } catch (e) {
+                    console.log('Failed to parse event: ', event);
+                    console.log('Completion', this.cyborgDuckView.completionText.textContent);
+                    continue;
+                }
+    
+                // Extract the completion from the JSON.
+                if (json.choices && json.choices[0] && json.choices[0].text) {
+                    const completion = json.choices[0].text;
+                    this.cyborgDuckView.appendCompletionText(completion);
+                }
+            }
+    
+            // Fetch the next chunk of data from the stream.
+            return reader.read().then(processChunk);
+        };
+
+        return reader.read().then(processChunk);
+    }
+    
+    
 
     // START OF PINECONE SECTION //
 

@@ -27,7 +27,10 @@
 		"js-tiktoken": "^1.0.6",
 		"marked": "^5.1.0",
 		"openai": "^3.2.1",
+		"openai-streams": "^5.7.0",
+		"stream-to-it": "^0.2.4",
 		"tiktoken": "^1.0.7",
-		"tiktoken-node": "^0.0.6"
+		"tiktoken-node": "^0.0.6",
+		"web-streams-polyfill": "^3.2.1"
 	}
 }

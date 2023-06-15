@@ -6,58 +6,74 @@
 }
 
 .cyborg-duck-container {
-    display: flex;
     flex-direction: column;
     height: 100%;
     padding: 10px;
     color: #ddd;
     font-family: 'Helvetica', sans-serif;
     background-color: #222;
+    user-select: text;
 }
 
-.prompt-container,
-.completion-container {
+.cyborg-duck-subcontainer {
     display: flex;
     flex-direction: column;
-    height: calc(50% - 5px); /* subtract half of the divider's height so the two halves are still equal */
     padding: 10px;
     box-shadow: 0px 0px 5px 0px rgba(255,255,255,0.1);
+    word-wrap: break-word;
 }
 
-.prompt-container h3,
-.completion-container h3 {
+.prompt-container-height,
+.completion-container-height {
+    height: calc(50% - 5px);
+}
+
+.add-prompt-container-height {
+    height: 100%;
+}
+
+.prompt-title,
+.completion-title,
+.add-prompt-title {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0px;
-    height: 10%;
+    margin-top: 5px;
+    margin-bottom: 5px;
     font-size: 1.5em;
     font-weight: bold;
     color: #ddd;
 }
 
-.prompt-container p,
-.completion-container p {
-    height: 80%;
+.prompt-text,
+.completion-text {
+    flex-grow: 1;
     overflow-y: auto;
-    padding: 0px;
     margin: 0px;
     font-size: 1em;
     line-height: 1.5;
     color: #ddd;
     white-space: pre-wrap;
+
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 10px;
+    
+    margin: 5px;
+}
+
+.completion-text {
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.completion-text.animate-text {
+    transform: scale(1.05);
+    opacity: 0.5;
 }
 
 .divider {
     height: 10px;
     background-color: #333;
-}
-
-.prompt-buttons,
-.completion-buttons {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 10px;
 }
 
 .button-container {
@@ -72,10 +88,101 @@
 
 .button-container button {
     flex: 1;
-    margin: 0 10px; /* Optional: adds a little spacing between buttons */
+    margin: 0 10px;
+    transition-duration: 0.3s;
 }
 
-.prompt-container p,
-.completion-container p {
-    word-wrap: break-word;
+.button-container button:hover {
+    background-color: rgb(144, 85, 255); 
+    color: rgb(255, 255, 255);
+}
+
+.input-label {
+    display: inline-block;
+    text-align: left;
+    margin: 10px 0px 5px 0px;
+    font-weight: bold;
+}
+
+.attribute-input {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.attribute-input.required > .input-label::after {
+    content: " *";
+    color: red;
+}
+
+.input-field {
+    width: 100%;
+}
+
+.message-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0px;
+}
+
+.message-input {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.add-message-button,
+.remove-message-button {
+    font-size: 1.5em;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #ddd;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    padding: 0;
+    line-height: 30px;  /* to vertically center the '+/X' inside the button */
+}
+
+.add-message-button {
+    align-self: center; /* Aligns the button to the center */
+}
+
+.remove-message-button {
+    color: #ff5555;
+}
+
+.prompt-input-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0px;
+}
+
+.message-role-select {
+    background: #333;
+    color: #ddd;
+    border: 1px solid #444;
+    padding: 5px;
+    border-radius: 4px;
+    width: auto;
+}
+
+.message-content-input {
+    flex: 1;
+    background: #333;
+    color: #ddd;
+    border: 1px solid #444;
+    padding: 5px;
+    border-radius: 4px;
+    width: auto;
+}
+
+.textarea {
+    resize: vertical;
 }
