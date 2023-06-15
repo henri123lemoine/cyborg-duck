@@ -285,13 +285,14 @@ export default class CyborgDuck extends Plugin {
 
     // Handles the processing and actions when a button related to an entry is clicked
     async performButtonClickActions(entry: Entry) {
-        const processedPromptData = await this.createPrompt(entry.Prompt);
+        const processedPromptData = await this.createPrompt(entry.Prompt) as PromptData;
         const formattedPromptData = this.formatPromptData(processedPromptData);
     
         this.cyborgDuckView.setPromptText(formattedPromptData);
     
+        console.log("Processed prompt data:", processedPromptData);
         try {
-            await this.streamOpenAICompletion(formattedPromptData);
+            await this.streamOpenAICompletion(processedPromptData);
         } catch (error) {
             console.error("Error with OpenAI completion", error);
         }
@@ -465,7 +466,11 @@ export default class CyborgDuck extends Plugin {
     }
 
     async streamOpenAICompletion(prompt: PromptData): Promise<void> {
-        const url = 'https://api.openai.com/v1/completions';
+        // If the prompt is not of type PromptData, throw an error
+        if (typeof prompt !== 'string' && !Array.isArray(prompt)) {
+            throw new Error("Invalid type for prompt");
+        }
+    
         const headers = {
             'Authorization': `Bearer ${this.settings.openaiApiKey}`,
             'Content-Type': 'application/json',
@@ -495,7 +500,8 @@ export default class CyborgDuck extends Plugin {
         } else {
             throw new Error("Invalid type for prompt");
         }
-    
+        
+        const url = `https://api.openai.com/v1/${Array.isArray(prompt) ? 'chat/' : ''}completions`;
         const response = await fetch(url, {
             method: 'POST',
             headers: headers,
@@ -505,7 +511,7 @@ export default class CyborgDuck extends Plugin {
         if (!response.ok) {
             throw new Error("API request failed");
         }
-
+    
         if (!response.body) {
             throw new Error("API response body is undefined");
         }
@@ -514,7 +520,7 @@ export default class CyborgDuck extends Plugin {
         let decoder = new TextDecoder();
         let data = '';
         this.cyborgDuckView.completionText.textContent = '';
-
+    
         const processChunk = async (chunk: ReadableStreamDefaultReadResult<Uint8Array>): Promise<void> => {
             if (chunk.done) {
                 // The stream has ended.
@@ -547,18 +553,30 @@ export default class CyborgDuck extends Plugin {
                     console.log('Completion', this.cyborgDuckView.completionText.textContent);
                     continue;
                 }
-    
+
                 // Extract the completion from the JSON.
-                if (json.choices && json.choices[0] && json.choices[0].text) {
+                if (Array.isArray(prompt)) {
+                    // Handle chat model response
+                    if (json.choices[0].delta) {
+                        if (json.choices[0].delta.content) {
+                            // console.log(`Content: ${json.choices[0].delta.content}`);
+                            this.cyborgDuckView.appendCompletionText(`${json.choices[0].delta.content}`);
+                        }
+                    }
+                } else if (typeof prompt === 'string') {
+                    // Handle completion model response
                     const completion = json.choices[0].text;
+                    // console.log('Completion: ', completion);
                     this.cyborgDuckView.appendCompletionText(completion);
+                } else {
+                    throw new Error("Invalid type for prompt");
                 }
             }
     
-            // Fetch the next chunk of data from the stream.
+            // Read the next chunk.
             return reader.read().then(processChunk);
-        };
-
+        }
+    
         return reader.read().then(processChunk);
     }
     
